@@ -1,0 +1,14 @@
+.idea
+.keep
+.DS_Store
+/.bundle/
+/.yardoc
+/_yardoc/
+/coverage/
+/doc/
+/pkg/
+/spec/reports/
+/tmp/
+
+.env
+*.gem
