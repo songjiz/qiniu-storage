@@ -1,5 +1,7 @@
 # QiniuStorage
 
+[![Build Status](https://travis-ci.com/songjiz/qiniu-storage.svg?branch=master)](https://travis-ci.com/songjiz/qiniu-storage)
+
 Unoffical gem for Qiniu Cloud Storage
 
 ## Installation
