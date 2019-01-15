@@ -107,6 +107,7 @@ module QiniuStorage
     attr_reader :rs_host, :rsf_host, :api_host, :uc_host
 
     def initialize(name:, **options)
+      @name = name
       @src_up_hosts = Array(options[:src_up_hosts])
       @cdn_up_hosts = Array(options[:cdn_up_hosts])
       @uc_host = options.fetch(:uc_host, UC_HOST)
