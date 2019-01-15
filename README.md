@@ -61,4 +61,4 @@ file.attach(StringIO.new("Hello, world"))
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/songjiz/qiniu_storage.
+Bug reports and pull requests are welcome on GitHub at https://github.com/songjiz/qiniu-storage.
