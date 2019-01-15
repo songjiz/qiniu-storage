@@ -16,7 +16,7 @@ module QiniuStorage
     extend Forwardable
     
     def_delegators :configuration, :logger, :log_level, :cache_dir
-    def_delegators :configuration, :use_https?, :enable_cdn?, :enable_upload_crc32?, :enable_upload_progress_cache?
+    def_delegators :configuration, :use_https?, :enable_cdn?, :skip_crc32_checksum?, :enable_upload_cache?
 
     def new(options)
       Client.new options
