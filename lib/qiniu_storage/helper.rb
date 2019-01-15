@@ -12,7 +12,7 @@ module QiniuStorage
     end
 
     def encode_entry(bucket, key = nil)
-      entry = [bucket, key].join(':')
+      entry = [bucket, key].join(":")
       base64_urlsafe_encode entry
     end
 
@@ -37,7 +37,7 @@ module QiniuStorage
     end
 
     def hmac_sha1_digest(secret_key, data)
-      digest = OpenSSL::Digest.new('sha1')
+      digest = OpenSSL::Digest.new("sha1")
       OpenSSL::HMAC.digest digest, secret_key, data
     end
 

@@ -88,7 +88,7 @@ module QiniuStorage
       encoded_policy = claims[2]
       policy_json = QiniuStorage.base64_urlsafe_decode(encoded_policy)
       policy = JSON.load(policy_json)
-      Time.now.utc.to_i > policy['deadline']
+      Time.now.utc.to_i > policy["deadline"]
     rescue
       true
     end

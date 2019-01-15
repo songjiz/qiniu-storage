@@ -9,7 +9,7 @@ module QiniuStorage
 			def etag(source)
 				case source
 				when String, Pathname
-					::File.open(source, 'rb') do |f|
+					::File.open(source, "rb") do |f|
 						generate_etag collect_sha1_digests(f)
 					end
 				else

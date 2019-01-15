@@ -22,9 +22,9 @@ class BucketTest < Minitest::Test
 
 	def test_region
 		bucket = @client.bucket("test-#{SecureRandom.uuid}")
-		assert_equal bucket.region.to_s, 'z0'
-		bucket = @client.bucket("test-#{SecureRandom.uuid}", region: 'z1')
-		assert_equal bucket.region.to_s, 'z1'
+		assert_equal bucket.region.to_s, "z0"
+		bucket = @client.bucket("test-#{SecureRandom.uuid}", region: "z1")
+		assert_equal bucket.region.to_s, "z1"
 	end
 	
 	def test_create_and_drop

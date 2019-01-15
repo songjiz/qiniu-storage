@@ -1,14 +1,14 @@
-require 'forwardable'
-require 'qiniu_storage/version'
-require 'qiniu_storage/configuration'
-require 'qiniu_storage/helper'
-require 'qiniu_storage/error'
-require 'qiniu_storage/zone'
-require 'qiniu_storage/operation'
-require 'qiniu_storage/bucket'
-require 'qiniu_storage/file'
-require 'qiniu_storage/uploader'
-require 'qiniu_storage/client'
+require "forwardable"
+require "qiniu_storage/version"
+require "qiniu_storage/configuration"
+require "qiniu_storage/helper"
+require "qiniu_storage/error"
+require "qiniu_storage/zone"
+require "qiniu_storage/operation"
+require "qiniu_storage/bucket"
+require "qiniu_storage/file"
+require "qiniu_storage/uploader"
+require "qiniu_storage/client"
 
 module QiniuStorage
   class << self
