@@ -18,7 +18,7 @@ module QiniuStorage
           region: :z0,
           logger: default_logger,
           log_level: :debug,
-          debug_mode: true,
+          debug_mode: false,
           upload_resumable_threshold: DEFAULT_UPLOAD_RESUMABLE_THRESHOLD,
           upload_block_size: DEFAULT_UPLOAD_BLOCK_SIZE,
           upload_chunk_size: DEFAULT_UPLOAD_CHUNK_SIZE,
