@@ -36,10 +36,6 @@ module QiniuStorage
       def z1
         new({
           name: "z1",
-          rs_host: "rs-z1.qbox.me",
-          rsf_host: "rsf-z1.qbox.me",
-          api_host: "api-z1.qiniu.com",
-          iovip_host: "iovip-z1.qbox.me",
           src_up_hosts: [
             "up-z1.qiniup.com"
           ],
@@ -52,10 +48,6 @@ module QiniuStorage
       def z2
         new({
           name: "z2",
-          rs_host: "rs-z2.qbox.me",
-          rsf_host: "rsf-z2.qbox.me",
-          api_host: "api-z2.qiniu.com",
-          iovip_host: "iovip-z2.qbox.me",
           src_up_hosts: [
             "up-z2.qiniup.com"
           ],
@@ -68,10 +60,6 @@ module QiniuStorage
       def na0
         new({
           name: "na0",
-          rs_host: "rs-na0.qbox.me",
-          rsf_host: "rsf-na0.qbox.me",
-          api_host: "api-na0.qiniu.com",
-          iovip_host: "iovip-na0.qbox.me",
           src_up_hosts: [
             "up-na0.qiniup.com"
           ],
@@ -84,10 +72,6 @@ module QiniuStorage
       def as0
         new({
           name: "as0",
-          rs_host: "rs-as0.qbox.me",
-          rsf_host: "rsf-as0.qbox.me",
-          api_host: "api-as0.qiniu.com",
-          iovip_host: "iovip-as0.qbox.me",
           src_up_hosts: [
             "up-as0.qiniup.com"
           ],
