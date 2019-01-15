@@ -80,7 +80,7 @@ module QiniuStorage
       end
 
       def call
-        encoded_entry = QiniuStorage.encode_entry(name, key)
+        encoded_entry = QiniuStorage.encode_entry(@bucket, @key)
         "/deleteAfterDays/#{encoded_entry}/#{days}"
       end
     end
