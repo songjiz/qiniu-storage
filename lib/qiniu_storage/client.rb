@@ -186,7 +186,7 @@ module QiniuStorage
       end
 
       def handle_response(response)
-        if response.code.to_i == 200 || response.code.to_i == 298
+        if success?(response.code.to_i)
           if response["Content-Type"] =~ /application\/json/ && !response.body.empty?
             JSON.parse(response.body)
           else
@@ -197,6 +197,10 @@ module QiniuStorage
           json = JSON.parse(response.body)
           raise QiniuStorage::Error, code: json["code"], message: json["error"]
         end
+      end
+
+      def success?(code)
+        200 <= code && code < 300
       end
   end
 end

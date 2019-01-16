@@ -134,6 +134,18 @@ $ gem install qiniu-storage
 
   # 修改元数据
   bucket.chmime "hello", "text/plain"
+
+  # 下载文件
+  body = bucket.download("hello")
+  partial = bucket.download("hello", range: 0..1024)
+  partial = bucket.download("hello", range: [0, 1024])
+  partial = bucket.download("hello", range: "bytes=0-1024")
+  bucket.streaming_download("hello") do |bytes|
+    # ...
+  end
+  bucket.streaming_download("hello", offset: 0, chunck_size: 1024) do |bytes|
+    # ...
+  end
  ```
 
 - Object 接口
@@ -245,4 +257,17 @@ obj.put(StringIO.new("Hello, world"))
 obj.multipart_upload StringIO.new("Hello, world")
 # 可恢复上传(大文件)
 obj.resumable_upload StringIO.new("Hello" * 1024 * 1024)
+
+# 下载文件
+body = obj.download
+partial = obj.download range: 0..1024
+partial = obj.download range: [0, 1024]
+partial = obj.download range: "bytes=0-1024"
+obj.streaming_download do |bytes|
+  # ...
+end
+
+obj.streaming_download(offset: 1000, chunk_size: 1024) do |bytes|
+  # ...
+end
 ```
