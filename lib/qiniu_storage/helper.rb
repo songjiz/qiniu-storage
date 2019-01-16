@@ -73,5 +73,18 @@ module QiniuStorage
         val.nil? || (val.respond_to?(:empty?) && val.empty?)
       end
     end
+
+    def build_url(host:, port: nil, path: nil, params: nil, use_https: nil)
+      options = { host: host, port: port, path: path }
+      query = encode_params(params)
+      unless query.empty?
+        options[:query] = query
+      end
+      if use_https
+        URI::HTTPS.build(options).to_s
+      else
+        URI::HTTP.build(options).to_s
+      end
+    end
   end
 end

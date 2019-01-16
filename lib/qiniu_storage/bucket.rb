@@ -56,7 +56,7 @@ module QiniuStorage
     end
 
     def up_host(mode = nil)
-      if (mode == :cdn) || (mode.nil? && QiniuStorage.enable_cdn?)
+      if (mode == :cdn) || (mode.nil? && QiniuStorage.use_cdn?)
         zone.cdn_up_hosts.first
       else
         zone.src_up_hosts.first
@@ -213,7 +213,7 @@ module QiniuStorage
     end
 
     def url_for(key, options = {})
-      public_url = QiniuStorage.build_url(scheme: options[:scheme], host: domains.first, path: "/#{key}", query: options[:fop].to_s)
+      public_url = client.build_url(host: domains.first, path: "/#{key}", params: { fop: options[:fop].to_s }, use_https: options[:use_https])
       expires_in = options[:expires_in]
       if expires_in
         sign_url public_url, expires_in
@@ -234,7 +234,9 @@ module QiniuStorage
         when Array
           "bytes=#{range[0]}-#{range[1]}"
         end
-      client.http_get url_for(key, expires_in: expires_in), range: range_header
+      # Fix me: OpenSSL::SSL::SSLError: SSL_connect returned=1 errno=0 state=SSLv2/v3 read server hello A: sslv3 alert handshake failure
+      # use HTTP instead of HTTPS temporarily
+      client.http_get url_for(key, use_https: false, expires_in: expires_in), range: range_header
     end
 
     def streaming_download(key, offset: 0, chunk_size: nil, expires_in: nil)
@@ -258,8 +260,8 @@ module QiniuStorage
       uploader.resumable_upload source, self, options
     end
 
-    def direct_upload_url(https: true)
-      client.build_url scheme: https ? "https" : "http", host: up_host
+    def direct_upload_url(use_https: nil)
+      client.build_url host: up_host, use_https: use_https
     end
 
     def encoded_name

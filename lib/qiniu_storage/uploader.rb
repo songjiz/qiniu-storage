@@ -203,7 +203,7 @@ module QiniuStorage
         form["file"] = stream
         form["token"] = generate_upload_token(bucket.name, form["key"], expires_in, policy: policy)
         options.fetch(:extras, {}).each { |k, v| form["x:#{k}"] = v }
-        url = client.build_url(bucket.up_host)
+        url = client.build_url(host: bucket.up_host)
         # Fix: no implicit conversion of nil into String
         QiniuStorage.prune_hash!(form)
         res = client.http_post(url, form, "Content-Type" => "multipart/form-data")
@@ -326,12 +326,12 @@ module QiniuStorage
       end
 
       def mkblock(host, token, size, chunk)
-        url = QiniuStorage.build_url(host: host, path: "/mkblk/#{size}")
+        url = client.build_url(host: host, path: "/mkblk/#{size}")
         client.http_post url, chunk, "Authorization" => "UpToken #{token}"
       end
 
       def mkchunk(host, token, chunk, ctx, offset)
-        url = QiniuStorage.build_url(host: host, path: "/bput/#{ctx}/#{offset}")
+        url = client.build_url(host: host, path: "/bput/#{ctx}/#{offset}")
         client.http_post url, chunk, "Authorization" => "UpToken #{token}"
       end
 
@@ -344,7 +344,7 @@ module QiniuStorage
           var_value = QiniuStorage.base64_urlsafe_encode(v)
           path << "/#{var_name}/#{var_value}"
         end
-        url = QiniuStorage.build_url(host: host, path: path)
+        url = client.build_url(host: host, path: path)
         body = ctxs.join(",")
         client.http_post url, body, "Authorization" => "UpToken #{token}"
       end

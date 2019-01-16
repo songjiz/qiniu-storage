@@ -18,7 +18,7 @@ module QiniuStorage
     end
 
     def buckets
-      url = build_url(Zone::RS_HOST, "/buckets")
+      url = build_url(host: Zone::RS_HOST, path: "/buckets")
       token = generate_access_token(url)
       data = rs_get "/buckets", headers: { "Authorization" => "QBox #{token}" }
       Array(data).map { |name| bucket name }
@@ -129,9 +129,8 @@ module QiniuStorage
       end
     end
 
-    def build_url(host, path = nil, params = {})
-      query = QiniuStorage.encode_params(params)
-      QiniuStorage.build_url host: host, path: path.to_s, query: query
+    def build_url(host:, path: nil, params: nil, use_https: nil)
+      QiniuStorage.build_url host: host, path: path.to_s, params: params, use_https: use_https.nil? ? QiniuStorage.configuration.use_https? : use_https
     end
 
     def http_get(url, headers = {})
@@ -168,8 +167,8 @@ module QiniuStorage
         { "User-Agent" => DEFAULT_USER_AGENT, "Content-Type" => DEFAULT_CONTENT_TYPE }
       end
 
-      def with_access_token(host, path, params = nil, body = nil)
-        url = build_url(host, path, params)
+      def with_access_token(host, path = nil, params = nil, body = nil)
+        url = build_url(host: host, path: path, params: params)
         yield url, generate_access_token(url, body)
       end
 

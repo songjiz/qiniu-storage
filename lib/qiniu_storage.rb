@@ -16,7 +16,7 @@ module QiniuStorage
     extend Forwardable
     
     def_delegators :configuration, :logger, :log_level, :cache_dir
-    def_delegators :configuration, :use_https?, :enable_cdn?, :skip_crc32_checksum?, :enable_upload_cache?
+    def_delegators :configuration, :use_https?, :use_cdn?, :skip_crc32_checksum?, :enable_upload_cache?
 
     def new(options)
       Client.new options
@@ -31,17 +31,6 @@ module QiniuStorage
         configuration.instance_eval(&block)
       else
         yield configuration
-      end
-    end
-
-    def build_url(options = {})
-      opts = options.dup
-      prune_hash! opts
-      scheme = opts.delete(:scheme)
-      if (scheme.nil? && use_https?)
-        URI::HTTPS.build(opts).to_s
-      else
-        URI::HTTP.build(opts).to_s
       end
     end
   end

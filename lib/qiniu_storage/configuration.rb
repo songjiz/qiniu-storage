@@ -27,7 +27,7 @@ module QiniuStorage
           download_chunk_size: DEFAULT_DOWNLOAD_CHUNK_SIZE,
           download_token_expires_in: DEFAULT_DOWNLOAD_TOKEN_EXPIRES_IN,
           use_https: true,
-          enable_cdn: false,
+          use_cdn: false,
           skip_crc32_checksum: false,
           enable_upload_cache: true,
           cache_dir: File.join(Dir.home, ".qiniu")
@@ -44,7 +44,7 @@ module QiniuStorage
     attr_accessor :upload_resumable_threshold, :upload_token_expires_in
     attr_accessor :upload_block_size, :upload_chunk_size, :upload_max_threads
     attr_accessor :download_chunk_size, :download_token_expires_in
-    attr_accessor :skip_crc32_checksum, :enable_upload_cache, :enable_cdn, :use_https
+    attr_accessor :skip_crc32_checksum, :enable_upload_cache, :use_cdn, :use_https
 
     def initialize
       self.class.defaults.each { |k, v| send("#{k}=", v) }
@@ -58,8 +58,8 @@ module QiniuStorage
       use_https
     end
 
-    def enable_cdn?
-      enable_cdn
+    def use_cdn?
+      use_cdn
     end
 
     def skip_crc32_checksum?
