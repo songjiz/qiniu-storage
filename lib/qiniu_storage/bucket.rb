@@ -56,7 +56,7 @@ module QiniuStorage
     end
 
     def up_host(mode = nil)
-      if (mode == :cdn) || (mode.nil? && QiniuStorage.use_cdn?)
+      if (mode == :cdn) || (mode.nil? && QiniuStorage.configuration.use_cdn?)
         zone.cdn_up_hosts.first
       else
         zone.src_up_hosts.first
@@ -204,7 +204,7 @@ module QiniuStorage
       batch keys.flatten.map { |key| extract_file_key(key) }.uniq.map { |key| QiniuStorage::Operation::ChMime.new(bucket: self, key: key, mime: mime) }
     end
 
-    def batch_standard(*keys)
+    def batch_standardize(*keys)
       batch_chtype *keys, 0
     end
 
