@@ -30,7 +30,7 @@ $ gem install qiniu-storage
 
  ```ruby
   QiniuStorage.configure do |config|
-    config.region = :z0
+    config.zone = :z0
     config.logger = Logger.new(STDOUT)
     config.log_level = :debug
     config.debug_mode = false
