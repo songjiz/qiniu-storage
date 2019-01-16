@@ -31,7 +31,7 @@ $ gem install qiniu-storage
  ```ruby
   QiniuStorage.configure do |config|
     config.region = :z0
-    config.logger = default_logger
+    config.logger = Logger.new(STDOUT)
     config.log_level = :debug
     config.debug_mode = false
     config.upload_resumable_threshold = 15 * 1024 * 1024
