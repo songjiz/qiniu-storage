@@ -15,22 +15,22 @@ module QiniuStorage
     class << self
       def defaults
         @defaults ||= {
-          region: :z0,
+          zone: ENV.fetch("QINIU_ZONE", :z0),
           logger: default_logger,
-          log_level: :debug,
-          debug_mode: false,
-          upload_resumable_threshold: DEFAULT_UPLOAD_RESUMABLE_THRESHOLD,
-          upload_block_size: DEFAULT_UPLOAD_BLOCK_SIZE,
-          upload_chunk_size: DEFAULT_UPLOAD_CHUNK_SIZE,
-          upload_token_expires_in: DEFAULT_UPLOAD_TOKEN_EXPIRES_IN,
-          upload_max_threads: 2,
-          download_chunk_size: DEFAULT_DOWNLOAD_CHUNK_SIZE,
-          download_token_expires_in: DEFAULT_DOWNLOAD_TOKEN_EXPIRES_IN,
-          use_https: true,
-          use_cdn: false,
-          skip_crc32_checksum: false,
-          enable_upload_cache: true,
-          cache_dir: File.join(Dir.home, ".qiniu")
+          log_level: ENV.fetch("QINIU_LOG_LEVEL", :debug),
+          debug_mode: ENV.fetch("QINIU_DEBUG_MODE", false),
+          upload_resumable_threshold: ENV.fetch("QINIU_UPLOAD_RESUMABLE_THRESHOLD", DEFAULT_UPLOAD_RESUMABLE_THRESHOLD),
+          upload_block_size: ENV.fetch("QINIU_UPLOAD_BLOCK_SIZE", DEFAULT_UPLOAD_BLOCK_SIZE),
+          upload_chunk_size: ENV.fetch("QINIU_UPLOAD_CHUNK_SIZE", DEFAULT_UPLOAD_CHUNK_SIZE),
+          upload_token_expires_in: ENV.fetch("QINIU_UPLOAD_TOKEN_EXPIRES_IN", DEFAULT_UPLOAD_TOKEN_EXPIRES_IN),
+          upload_max_threads: ENV.fetch("QINIU_UPLOAD_MAX_THREADS", 2),
+          download_chunk_size: ENV.fetch("QINIU_DOWNLOAD_CHUNK_SIZE", DEFAULT_DOWNLOAD_CHUNK_SIZE),
+          download_token_expires_in: ENV.fetch("QINIU_DOWNLOAD_TOKEN_EXPIRES_IN", DEFAULT_DOWNLOAD_TOKEN_EXPIRES_IN),
+          use_https: ENV.fetch("QINIU_USE_HTTPS", true),
+          use_cdn: ENV.fetch("QINIU_USE_CDN", true),
+          skip_crc32_checksum: ENV.fetch("QINIU_SKIP_CRC32_CHECKSUM", false),
+          use_upload_cache: ENV.fetch("QINIU_USE_UPLOAD_CACHE", true),
+          cache_dir: ENV.fetch("QINIU_CACHE_DIR", File.join(Dir.home, ".qiniu"))
         }
       end
 
@@ -40,11 +40,11 @@ module QiniuStorage
         end
     end
 
-    attr_accessor :region, :logger, :log_level, :debug_mode, :cache_dir
+    attr_accessor :zone, :logger, :log_level, :debug_mode, :cache_dir
     attr_accessor :upload_resumable_threshold, :upload_token_expires_in
     attr_accessor :upload_block_size, :upload_chunk_size, :upload_max_threads
     attr_accessor :download_chunk_size, :download_token_expires_in
-    attr_accessor :skip_crc32_checksum, :enable_upload_cache, :use_cdn, :use_https
+    attr_accessor :skip_crc32_checksum, :use_upload_cache, :use_cdn, :use_https
 
     def initialize
       self.class.defaults.each { |k, v| send("#{k}=", v) }
@@ -66,8 +66,8 @@ module QiniuStorage
       skip_crc32_checksum
     end
 
-    def enable_upload_cache?
-      enable_upload_cache
+    def use_upload_cache?
+      use_upload_cache
     end
   end
 end

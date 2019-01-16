@@ -9,7 +9,7 @@ module QiniuStorage
     def initialize(name:, client:, region: nil)
       @name = name
       @client = client
-      @region = region || QiniuStorage.configuration.region
+      @region = region || QiniuStorage.configuration.zone
     end
 
     def to_s

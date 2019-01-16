@@ -240,7 +240,7 @@ module QiniuStorage
           if complete
             FileUtils.rm_f progress_file
           else
-            if QiniuStorage.configuration.enable_upload_cache?
+            if QiniuStorage.configuration.use_upload_cache?
               dump_resumable_progress(progress, progress_file)
             end
           end

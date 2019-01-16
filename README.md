@@ -44,7 +44,7 @@ $ gem install qiniu-storage
     config.use_https = true
     config.use_cdn = false
     config.skip_crc32_checksum = false
-    config.enable_upload_cache = true
+    config.use_upload_cache = true
     config.cache_dir = File.join(Dir.home, ".qiniu")
   end
 
