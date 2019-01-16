@@ -47,8 +47,7 @@ module QiniuStorage
     end
 
     def acl_private(yes = true)
-      form = { bucket: name, private: yes ? 1 : 0 }
-      body = QiniuStorage.encode_form(form)
+      body = QiniuStorage.encode_form(bucket: name, private: yes ? 1 : 0)
       uc_post "/private", body: body
     end
 
@@ -64,13 +63,17 @@ module QiniuStorage
       end
     end
 
-    def files(limit: 1000, prefix: nil, delimiter: nil, marker: nil)
-      QiniuStorage::File::Bundle.new bucket: self, limit: limit, prefix: prefix, delimiter: delimiter, marker: marker
+    def objects(limit: 1000, prefix: nil, delimiter: nil, marker: nil)
+      QiniuStorage::Object::Bundle.new bucket: self, limit: limit, prefix: prefix, delimiter: delimiter, marker: marker
     end
 
-    def file(key)
-      QiniuStorage::File.new(bucket: self, key: key)
+    alias :files :objects
+
+    def object(key)
+      QiniuStorage::Object.new(bucket: self, key: key)
     end
+
+    alias :file :object
 
     def encoded_uri(key)
       QiniuStorage.encode_entry self, key
@@ -93,27 +96,27 @@ module QiniuStorage
     alias :remove :delete
 
     def rename(key, new_key, force: false)
-      move key, new_bucket: self, new_key: new_key, force: force
+      move key, to_bucket: self, to_key: new_key, force: force
     end
 
-    def move(key, new_bucket: nil, new_key: nil, force: false)
-      if new_bucket.nil? && new_key.nil?
+    def move(key, to_bucket: nil, to_key: nil, force: false)
+      if to_bucket.nil? && to_key.nil?
         raise ArgumentError, "Must specify at least one bucket name or key"
       end
       key = extract_file_key(key)
-      new_bucket ||= self
-      new_key    ||= key
-      rs_post QiniuStorage::Operation::Move.new(bucket: self, key: key, new_bucket: new_bucket, new_key: new_key, force: force)
+      to_bucket ||= self
+      to_key    ||= key
+      rs_post QiniuStorage::Operation::Move.new(bucket: self, key: key, to_bucket: to_bucket, to_key: to_key, force: force)
     end
 
-    def copy(key, new_bucket: nil, new_key: nil, force: false)
-      if new_bucket.nil? && new_key.nil?
+    def copy(key, to_bucket: nil, to_key: nil, force: false)
+      if to_bucket.nil? && to_key.nil?
         raise ArgumentError, "Must specify at least one bucket name or key"
       end
       key = extract_file_key(key)
-      new_bucket ||= self
-      new_key    ||= key
-      rs_post QiniuStorage::Operation::Copy.new(bucket: self, key: key, new_bucket: new_bucket, new_key: new_key, force: force)
+      to_bucket ||= self
+      to_key    ||= key
+      rs_post QiniuStorage::Operation::Copy.new(bucket: self, key: key, to_bucket: to_bucket, to_key: to_key, force: force)
     end
 
     def chmime(key, mime)
@@ -124,7 +127,7 @@ module QiniuStorage
       rs_post QiniuStorage::Operation::ChType.new(bucket: self, key: extract_file_key(key), type: type)
     end
 
-    def standard(key)
+    def standardize(key)
       chtype extract_file_key(key), 0
     end
 
@@ -148,10 +151,12 @@ module QiniuStorage
       rs_post QiniuStorage::Operation::DeleteAfterDays.new(bucket: self, key: extract_file_key(key), days: days)
     end
 
+    alias :life_cycle :delete_after_days
+
     def fetch(source_url, key = nil)
       op = QiniuStorage::Operation::Fetch.new(bucket: self, key: key, source_url: source_url)
-      metadatas = iovip_post(op)
-      QiniuStorage::File.new(bucket: self, key: key).tap { |f| f.update_metadatas metadatas }
+      data = iovip_post(op)
+      QiniuStorage::Object.new(bucket: self, key: key).tap { |f| f.update_metadata data }
     end
 
     def prefetch(key)
@@ -171,8 +176,12 @@ module QiniuStorage
       batch keys.flatten.map { |key| extract_file_key(key) }.uniq.map { |key| QiniuStorage::Operation::Stat.new(bucket: self, key: key) }
     end
 
-    def batch_move(*keys, new_bucket, force: false)
-      batch keys.flatten.map { |key| extract_file_key(key) }.uniq.map { |key| QiniuStorage::Operation::Move.new(bucket: self, key: key, new_bucket: new_bucket, new_key: key, force: force) }
+    def batch_move(*keys, to_bucket, force: false)
+      batch keys.flatten.map { |key| extract_file_key(key) }.uniq.map { |key| QiniuStorage::Operation::Move.new(bucket: self, key: key, to_bucket: to_bucket, to_key: key, force: force) }
+    end
+
+    def batch_copy(*keys, to_bucket, force: false)
+      batch keys.flatten.map { |key| extract_file_key(key) }.uniq.map { |key| QiniuStorage::Operation::Copy.new(bucket: self, key: key, to_bucket: to_bucket, to_key: key, force: force) }
     end
 
     def batch_chstatus(*keys, status)
@@ -213,7 +222,7 @@ module QiniuStorage
       end
     end
     
-    alias :file_url :url_for
+    alias :object_url :url_for
 
     def download(key, range: nil, expires_in: nil)
       range_header = \
@@ -264,7 +273,7 @@ module QiniuStorage
 
       def extract_file_key(obj)
         case obj
-        when QiniuStorage::File
+        when QiniuStorage::Object
           obj.key
         else
           obj.to_s

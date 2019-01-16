@@ -1,5 +1,5 @@
 module QiniuStorage
-  class File
+  class Object
     class Bundle
       include Enumerable
 
@@ -74,32 +74,47 @@ module QiniuStorage
         bucket.batch_delete keys
       end
 
+      alias :batch_remove :batch_delete
       alias :delete_all :batch_delete
+      alias :remove :batch_delete
 
       def batch_stat
         bucket.batch_stat(keys).tap do |res|
           res.each_with_index do |item, index|
-            if item['code'] == 200
-              entities[index].update_metadatas item['data']
+            if item["code"] == 200
+              entities[index].update_metadata item["data"]
             end
           end
         end
       end
 
       alias :stat :batch_stat
-      alias :metadatas :batch_stat
+      alias :metadata :batch_stat
 
-      def batch_move(new_bucket)
-        bucket.batch_move(keys, new_bucket)
-        @bucket = new_bucket
+      def batch_move(to_bucket, force: false)
+        target_bucket = build_bucket(to_bucket)
+        bucket.batch_move(keys, target_bucket, force: force).tap do |res|
+          res.each_with_index do |item, index|
+            if item["code"] == 200
+              entities[index].bucket = target_bucket
+            end
+          end
+        end
       end
 
       alias :move :batch_move
 
+      def batch_copy(to_bucket, force: false)
+        target_bucket = build_bucket(to_bucket)
+        bucket.batch_copy(keys, target_bucket, force: force)
+      end
+
+      alias :copy :batch_copy
+
       def batch_chstatus(status)
         bucket.batch_chstatus(keys, status).tap do |res|
           res.each_with_index do |item, index|
-            if item['code'] == 200
+            if item["code"] == 200
               entities[index].status = status
             end
           end
@@ -123,7 +138,7 @@ module QiniuStorage
       def batch_chtype(type)
         bucket.batch_chtype(keys, type).tap do |res|
           res.each_with_index do |item, index|
-            if item['code'] == 200
+            if item["code"] == 200
               entities[index].type = type
             end
           end
@@ -135,7 +150,7 @@ module QiniuStorage
       def batch_chmime(mime)
         bucket.batch_chmime(keys, mime).tap do |res|
           res.each_with_index do |item, index|
-            if item['code'] == 200
+            if item["code"] == 200
               entities[index].mime_type = mime
             end
           end
@@ -144,11 +159,11 @@ module QiniuStorage
 
       alias :chmime :batch_chmime
 
-      def batch_standard
+      def batch_standardize
         batch_chtype 0
       end
 
-      alias :standard :batch_standard
+      alias :standardize :batch_standardize
 
       def batch_low_freq
         batch_chtype 1
@@ -176,21 +191,30 @@ module QiniuStorage
 
         def load_entities
           @entities ||= begin
-            data = bucket.rsf_get('/list', params: filter_params)
-            @next_marker = data['marker']
-            @common_prefixes = data['commonPrefixes']
-            Array(data['items']).map do |opts|
-              QiniuStorage::File.new(
+            data = bucket.rsf_get("/list", params: filter_params)
+            @next_marker = data["marker"]
+            @common_prefixes = data["commonPrefixes"]
+            Array(data["items"]).map do |opts|
+              QiniuStorage::Object.new(
                 bucket: bucket,
-                key: opts['key'],
-                etag: opts['hash'],
-                mime_type: opts['mimeType'],
-                fsize: opts['fsize'],
-                type: opts['type'],
-                put_time: opts['putTime'],
-                status: opts['status']
+                key: opts["key"],
+                etag: opts["hash"],
+                mime_type: opts["mimeType"],
+                fsize: opts["fsize"],
+                type: opts["type"],
+                put_time: opts["putTime"],
+                status: opts["status"]
               )
             end
+          end
+        end
+
+        def build_bucket(obj)
+          case obj
+          when QiniuStorage::Bucket
+            obj
+          else
+            bucket.client.bucket obj.to_s
           end
         end
     end
@@ -200,7 +224,7 @@ module QiniuStorage
     def initialize(bucket:, key:, **options)
       @bucket = bucket
       @key = key
-      @metadatas = {}
+      @_metadata = {}
     end
 
     def name
@@ -216,29 +240,33 @@ module QiniuStorage
     end
 
     def etag
-      @metadatas[:hash]
+      @_metadata[:hash]
     end
 
     def etag=(val)
-      @metadatas[:hash] = val
+      @_metadata[:hash] = val
+    end
+
+    def each_meta(&block)
+      @_metadata.each &block
     end
 
     def []=(key, val)
-      @metadatas[convert_metadata_key(key)] = val
+      @_metadata[convert_metadata_key(key)] = val
     end
 
     def [](key)
-      @metadatas[convert_metadata_key(key)]
+      @_metadata[convert_metadata_key(key)]
     end
 
     %i(status fsize md5 mime_type type put_time end_user).each do |name|
       class_eval <<-RUBY, __FILE__, __LINE__ + 1
         def #{name}
-          @metadatas[:#{name}]
+          @_metadata[:#{name}]
         end
 
         def #{name}=(val)
-          @metadatas[:#{name}] = val
+          @_metadata[:#{name}] = val
         end
       RUBY
     end
@@ -266,29 +294,33 @@ module QiniuStorage
     end
 
     def chstatus(status)
-      bucket.chstatus(key, status)
-      @status = status
+      bucket.chstatus key, status
+      self.status = status
     end
 
-    def enable?
-      status.zero?
+    def enabled?
+      status.nil? || status.zero?
     end
 
     def enable
+      return if enabled?
       chstatus 0
     end
 
-    def disable?
-      !enable?
+    def disabled?
+      !enabled?
     end
 
     def disable
+      return if disabled?
       chstatus 1
     end
 
     def delete_after_days(days)
-      bucket.delete_after_days(key, days)
+      bucket.delete_after_days key, days
     end
+
+    alias :life_cycle :delete_after_days
 
     def standard?
       type.zero?
@@ -300,35 +332,41 @@ module QiniuStorage
 
     def chtype(type)
       bucket.chtype(key, type)
-      @type = type
+      self.type = type
     end
 
-    def standard
+    def standardize
+      return if standard?
       chtype 0
     end
 
     def low_freq
+      return if low_freq?
       chtype 1
     end
 
     def stat
-      bucket.stat(key).tap { |options| update_metadatas(options) }
+      bucket.stat(key).tap { |options| update_metadata(options) }
     end
     
-    alias :metadatas :stat
+    alias :metadata :stat
 
     def chmime(mime)
       bucket.chmime(key, mime)
-      @mime_type = mime
+      self.mime_type = mime
     end
 
-    def move(new_bucket:, new_key: nil, force: false)
-      bucket.move key: key, new_bucket: new_bucket, new_key: new_key, force: force
+    def move(to_bucket: nil, to_key: nil, force: false)
+      self.tap do |obj|
+        bucket.move key, to_bucket: to_bucket, to_key: to_key, force: force
+        obj.bucket = to_bucket || bucket
+        obj.key    = to_key || key
+      end
     end
 
-    def copy(new_bucket:, new_key: nil, force: false)
-      bucket.copy key: key, new_bucket: new_bucket, new_key: new_key, force: force
-      self.class.new(bucket: new_bucket, key: new_key)
+    def copy(to_bucket: nil, to_key: nil, force: false)
+      bucket.copy key, to_bucket: to_bucket, to_key: to_key, force: force
+      self.class.new(bucket: to_bucket || bucket , key: to_key || key)
     end
 
     def delete
@@ -337,9 +375,21 @@ module QiniuStorage
 
     alias :remove :delete
 
-    def rename(new_key, force: false)
-      bucket.rename(key, new_key, force: force)
-      @key = new_key
+    def rename(to_key, force: false)
+      bucket.rename key, to_key, force: force
+      @key = to_key
+    end
+
+    def fetch(source_url)
+      obj = bucket.fetch(source_url, key)
+      obj.each_meta do |k, v|
+        self[k] = v
+      end
+      self
+    end
+
+    def prefetch
+      bucket.prefetch key
     end
 
     def put(source, options = {})
@@ -348,20 +398,28 @@ module QiniuStorage
 
     alias :attach :put
 
+    def multipart_upload(source, options = {})
+      bucket.multipart_upload source, options.merge(key: key)
+    end
+
+    def resumable_upload(source, options = {})
+      bucket.resumable_upload source, options.merge(key: key)
+    end
+
     def exists?
-      !bucket.files(prefix: key).empty?
+      !bucket.objects(prefix: key).empty?
     end
 
     def url(options = {})
-      bucket.file_url key, options
+      bucket.object_url key, options
     end
 
     def img_info(options = {})
-      QiniuStorage::HTTP.get url(options.merge(fop: QiniuStorage::Operation::ImgInfo.new))
+      bucket.client.http_get url(options.merge(fop: QiniuStorage::Operation::ImageInfo.new))
     end
 
     def av_info(options = {})
-      QiniuStorage::HTTP.get url(options.merge(fop: QiniuStorage::Operation::AvInfo.new))
+      bucket.client.http_get url(options.merge(fop: QiniuStorage::Operation::AvInfo.new))
     end
 
     def download(range: nil, expires_in: nil)
@@ -372,9 +430,9 @@ module QiniuStorage
       bucket.streaming_download key, offset: offset, chunk_size: chunk_size, expires_in: expires_in, &block
     end
 
-    def update_metadatas(options)
+    def update_metadata(options)
       options.each do |key, val|
-        @metadatas[convert_metadata_key(key)] = val
+        @_metadata[convert_metadata_key(key)] = val
       end
     end
 
@@ -383,7 +441,7 @@ module QiniuStorage
         if key.respond_to?(:underscore)
           key.underscore.to_sym
         else
-          key.to_s.gsub(/([a-z])([A-Z])/,'\1_\2').downcase.to_sym
+          key.to_s.gsub(/([a-z])([A-Z])/, '\1_\2').downcase.to_sym
         end
       end
   end

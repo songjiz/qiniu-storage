@@ -177,7 +177,7 @@ module QiniuStorage
 
     def upload(source, bucket, options = {})
       source_size = if String === source || Pathname === source
-                      ::File.size source
+                      File.size source
                     elsif streamable?(source)
                       source.size
                     else
@@ -207,7 +207,7 @@ module QiniuStorage
         # Fix: no implicit conversion of nil into String
         QiniuStorage.prune_hash!(form)
         res = client.http_post(url, form, "Content-Type" => "multipart/form-data")
-        QiniuStorage::File.new(bucket: bucket, key: res["key"], hash: res["hash"])
+        QiniuStorage::Object.new(bucket: bucket, key: res["key"], hash: res["hash"])
       end
     end
 
@@ -234,7 +234,7 @@ module QiniuStorage
         (1..threads_count).map { schedule_upload_part(up_host, token, stream, progress, chunk_size, skip_crc32) }.map(&:join)
         res = mkfile(up_host, token, stream, progress.last_ctx_values, key: options[:key], mime_type: options[:mime_type], extras: options[:extras])
         complete = true
-        QiniuStorage::File.new(bucket: bucket, key: res["key"], hash: res["hash"])
+        QiniuStorage::Object.new(bucket: bucket, key: res["key"], hash: res["hash"])
       ensure
         if progress_file && progress
           if complete
@@ -250,21 +250,21 @@ module QiniuStorage
 
     def lookup_resumable_progress_file(bucket, io)
       digest = QiniuStorage.md5_checksum(io)
-      ::File.join QiniuStorage.configuration.cache_dir, bucket.to_s, digest
+      File.join QiniuStorage.configuration.cache_dir, bucket.to_s, digest
     end
 
     def dump_resumable_progress(progress, to)
       resumable_synchronize do
-        unless ::File.exist?(to)
-          FileUtils.mkdir_p ::File.dirname(to)
+        unless File.exist?(to)
+          FileUtils.mkdir_p File.dirname(to)
         end
-        ::File.open(to, "wb") { |f| f.puts JSON.pretty_generate(progress.to_h) }
+        File.open(to, "wb") { |f| f.puts JSON.pretty_generate(progress.to_h) }
       end
     end
 
     def load_resumable_progress(from)
       resumable_synchronize do
-        attrs = JSON.load(::File.read(from))
+        attrs = JSON.load(File.read(from))
         Resumable::Progress.new(attrs)
       end
     rescue
@@ -285,7 +285,7 @@ module QiniuStorage
 
       def with_streamable(source)
         if String === source || Pathname === source
-          ::File.open(source, "rb") { |f| yield f }
+          File.open(source, "rb") { |f| yield f }
         elsif streamable?(source)
           yield source
         else

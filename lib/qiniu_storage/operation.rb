@@ -57,17 +57,17 @@ module QiniuStorage
     end
 
     class Copy < AbstractOperation
-      def initialize(bucket:, key:, new_bucket:, new_key:, force: false)
+      def initialize(bucket:, key:, to_bucket:, to_key:, force: false)
         @bucket = bucket
         @key = key
-        @new_bucket = new_bucket
-        @new_key = new_key
+        @to_bucket = to_bucket
+        @to_key = to_key
         @force = force
       end
 
       def call
         source_encoded_entry = QiniuStorage.encode_entry(@bucket, @key)
-        target_encoded_entry = QiniuStorage.encode_entry(@new_bucket, @new_key)
+        target_encoded_entry = QiniuStorage.encode_entry(@to_bucket, @to_key)
         "/copy/#{source_encoded_entry}/#{target_encoded_entry}/force/#{@force}"
       end
     end
@@ -81,7 +81,7 @@ module QiniuStorage
 
       def call
         encoded_entry = QiniuStorage.encode_entry(@bucket, @key)
-        "/deleteAfterDays/#{encoded_entry}/#{days}"
+        "/deleteAfterDays/#{encoded_entry}/#{@days}"
       end
     end
 
@@ -98,17 +98,17 @@ module QiniuStorage
     end
 
     class Move < AbstractOperation
-      def initialize(bucket:, key:, new_bucket:, new_key: nil, force: false)
+      def initialize(bucket:, key:, to_bucket:, to_key: nil, force: false)
         @bucket = bucket
         @key = key
-        @new_bucket = new_bucket
-        @new_key = new_key
+        @to_bucket = to_bucket
+        @to_key = to_key
         @force = force
       end
 
       def call
         source_encoded_entry = QiniuStorage.encode_entry(@bucket, @key)
-        target_encoded_entry = QiniuStorage.encode_entry(@new_bucket, @new_key)
+        target_encoded_entry = QiniuStorage.encode_entry(@to_bucket, @to_key)
         "/move/#{source_encoded_entry}/#{target_encoded_entry}/force/#{@force}"
       end
     end

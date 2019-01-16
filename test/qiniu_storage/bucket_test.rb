@@ -69,7 +69,7 @@ class BucketTest < Minitest::Test
       bucket1.move file
     end
 
-    bucket1.move(file, new_bucket: bucket2)
+    bucket1.move(file, to_bucket: bucket2)
     file = bucket1.file("hello.txt")
     assert_equal file.exists?, false
     file = bucket2.file("hello.txt")
@@ -92,11 +92,11 @@ class BucketTest < Minitest::Test
       bucket1.copy file
     end
 
-    bucket1.copy(file, new_key: "hello_world.txt")
+    bucket1.copy(file, to_key: "hello_world.txt")
     file = bucket1.file("hello_world.txt")
     assert_equal file.exists?, true
     
-    bucket1.copy(file, new_bucket: bucket2, new_key: "hello.txt")
+    bucket1.copy(file, to_bucket: bucket2, to_key: "hello.txt")
     file = bucket2.file("hello.txt")
     assert_equal file.exists?, true
   ensure
@@ -121,7 +121,7 @@ class BucketTest < Minitest::Test
     bucket.create
 
     files = bucket.files
-    assert_kind_of QiniuStorage::File::Bundle, files
+    assert_kind_of QiniuStorage::Object::Bundle, files
     assert_equal files.empty?, true
 
     file = bucket.file("hello.txt")
@@ -159,15 +159,15 @@ class BucketTest < Minitest::Test
 
     files.low_freq
     files.each { |f| assert_equal f.low_freq?, true }
-    files.standard
+    files.standardize
     files.each { |f| assert_equal f.standard?, true }
     files.disable
-    files.each { |f| assert_equal f.disable?, true }
+    files.each { |f| assert_equal f.disabled?, true }
     files.enable
-    files.each { |f| assert_equal f.enable?, true }
+    files.each { |f| assert_equal f.enabled?, true }
     files.chmime "text/plain"
     files.each { |f| assert_equal f.mime_type, "text/plain" }
-    files.metadatas
+    files.stat
     files.each { |f| assert !f.etag.nil? }
   ensure
     bucket.drop

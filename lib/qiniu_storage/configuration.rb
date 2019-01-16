@@ -30,7 +30,7 @@ module QiniuStorage
           enable_cdn: false,
           skip_crc32_checksum: false,
           enable_upload_cache: true,
-          cache_dir: ::File.join(Dir.home, ".qiniu")
+          cache_dir: File.join(Dir.home, ".qiniu")
         }
       end
 
