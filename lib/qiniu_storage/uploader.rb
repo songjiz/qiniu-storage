@@ -206,8 +206,8 @@ module QiniuStorage
         url = client.build_url(host: bucket.up_host)
         # Fix: no implicit conversion of nil into String
         QiniuStorage.prune_hash!(form)
-        res = client.http_post(url, form, "Content-Type" => "multipart/form-data")
-        QiniuStorage::Object.new(bucket: bucket, key: res["key"], hash: res["hash"])
+        result = client.http_post(url, form, "Content-Type" => "multipart/form-data")
+        QiniuStorage::Object.new(bucket: bucket, key: result["key"], hash: result["hash"])
       end
     end
 
@@ -232,9 +232,9 @@ module QiniuStorage
           generate_parts(stream.size, block_size) { |part| progress.push part }
         end
         (1..threads_count).map { schedule_upload_part(up_host, token, stream, progress, chunk_size, skip_crc32) }.map(&:join)
-        res = mkfile(up_host, token, stream, progress.last_ctx_values, key: options[:key], mime_type: options[:mime_type], extras: options[:extras])
+        result = mkfile(up_host, token, stream, progress.last_ctx_values, key: options[:key], mime_type: options[:mime_type], extras: options[:extras])
         complete = true
-        QiniuStorage::Object.new(bucket: bucket, key: res["key"], hash: res["hash"])
+        QiniuStorage::Object.new(bucket: bucket, key: result["key"], hash: result["hash"])
       ensure
         if progress_file && progress
           if complete
@@ -245,6 +245,25 @@ module QiniuStorage
             end
           end
         end
+      end
+    end
+
+    # Fix me: This method will raise `object type not match` error
+    def append(source, bucket, key, offset: 0, **options)
+      fsize = options.fetch(:size, -1).to_i
+      mime = options.fetch(:mime_type, "application/octet-stream")
+      encoded_key = QiniuStorage.base64_urlsafe_encode(key)
+      encoded_mime = QiniuStorage.base64_urlsafe_encode(mime)
+      skip_crc32 = options.fetch(:skip_crc32_checksum, QiniuStorage.configuration.skip_crc32_checksum?)
+      with_streamable(source) do |stream|
+        path = "/append/#{offset.to_i}/fsize/#{fsize}/key/#{encoded_key}"
+        unless skip_crc32
+          crc32_checksum = QiniuStorage.crc32_checksum(stream).to_s
+          path += "/crc32/#{crc32_checksum}"
+        end
+        url = client.build_url(host: bucket.up_host, path: path)
+        token = generate_upload_token(bucket, key)
+        client.http_post url, stream, "Authorization" => "UpToken #{token}", "Content-Type" => "application/octet-stream", "Content-Length" => stream.size
       end
     end
 

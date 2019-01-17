@@ -181,4 +181,20 @@ class BucketTest < Minitest::Test
   ensure
     bucket.drop
   end
+
+  # def test_append
+  #   bucket = @client.bucket("test-#{SecureRandom.uuid}")
+  #   bucket.create
+
+  #   QiniuStorage.configuration.http_debug_mode = true
+  #   obj = bucket.object("hello.txt")
+  #   part1 = StringIO.new("Hello")
+  #   part2 = StringIO.new(", World!")
+  #   obj.attach part1
+  #   bucket.append obj.key, part2
+  #   obj.stat
+  #   assert_equal part1.size + part2.size, obj.size
+  # ensure
+  #   bucket.drop
+  # end
 end

@@ -79,8 +79,8 @@ module QiniuStorage
       alias_method :remove, :batch_delete
 
       def batch_stat
-        bucket.batch_stat(keys).tap do |res|
-          res.each_with_index do |item, index|
+        bucket.batch_stat(keys).tap do |result|
+          result.each_with_index do |item, index|
             if item["code"] == 200
               entities[index].update_metadata item["data"]
             end
@@ -93,8 +93,8 @@ module QiniuStorage
 
       def batch_move(to_bucket, force: false)
         target_bucket = build_bucket(to_bucket)
-        bucket.batch_move(keys, target_bucket, force: force).tap do |res|
-          res.each_with_index do |item, index|
+        bucket.batch_move(keys, target_bucket, force: force).tap do |result|
+          result.each_with_index do |item, index|
             if item["code"] == 200
               entities[index].bucket = target_bucket
             end
@@ -112,8 +112,8 @@ module QiniuStorage
       alias_method :copy, :batch_copy
 
       def batch_chstatus(status)
-        bucket.batch_chstatus(keys, status).tap do |res|
-          res.each_with_index do |item, index|
+        bucket.batch_chstatus(keys, status).tap do |result|
+          result.each_with_index do |item, index|
             if item["code"] == 200
               entities[index].status = status
             end
@@ -136,8 +136,8 @@ module QiniuStorage
       alias_method :disable, :batch_disable
 
       def batch_chtype(type)
-        bucket.batch_chtype(keys, type).tap do |res|
-          res.each_with_index do |item, index|
+        bucket.batch_chtype(keys, type).tap do |result|
+          result.each_with_index do |item, index|
             if item["code"] == 200
               entities[index].type = type
             end
@@ -148,8 +148,8 @@ module QiniuStorage
       alias_method :chtype, :batch_chtype
 
       def batch_chmime(mime)
-        bucket.batch_chmime(keys, mime).tap do |res|
-          res.each_with_index do |item, index|
+        bucket.batch_chmime(keys, mime).tap do |result|
+          result.each_with_index do |item, index|
             if item["code"] == 200
               entities[index].mime_type = mime
             end
@@ -412,6 +412,10 @@ module QiniuStorage
 
     def resumable_upload(source, options = {})
       bucket.resumable_upload source, options.merge(key: key)
+    end
+
+    def append(source, option = {})
+      bucket.append key, source, option
     end
 
     def exists?

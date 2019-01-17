@@ -33,7 +33,7 @@ $ gem install qiniu-storage
     config.zone = :z0
     config.logger = Logger.new(STDOUT)
     config.log_level = :debug
-    config.debug_mode = false
+    config.http_debug_mode = false
     config.upload_resumable_threshold = 15 * 1024 * 1024
     config.upload_block_size = 4 * 1024 * 1024
     config.upload_chunk_size = 256 * 1024

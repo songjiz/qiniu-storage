@@ -287,6 +287,10 @@ module QiniuStorage
       uploader.resumable_upload source, self, options
     end
 
+    def append(key, source, options = {})
+      uploader.append(source, self, key, options)
+    end
+
     def direct_upload_url(use_https: nil)
       client.build_url host: up_host, use_https: use_https
     end

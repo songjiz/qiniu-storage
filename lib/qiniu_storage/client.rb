@@ -224,8 +224,8 @@ module QiniuStorage
             http.use_ssl = true
             http.verify_mode = OpenSSL::SSL::VERIFY_NONE
           end
-          if QiniuStorage.configuration.debug_mode?
-            http.set_debug_output STDOUT
+          if QiniuStorage.configuration.http_debug_mode?
+            http.set_debug_output QiniuStorage.configuration.logger
           end
         end
       end

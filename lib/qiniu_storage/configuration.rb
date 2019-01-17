@@ -18,7 +18,7 @@ module QiniuStorage
           zone: ENV.fetch("QINIU_ZONE", :z0),
           logger: default_logger,
           log_level: ENV.fetch("QINIU_LOG_LEVEL", :debug),
-          debug_mode: ENV.fetch("QINIU_DEBUG_MODE", false),
+          http_debug_mode: ENV.fetch("QINIU_HTTP_DEBUG_MODE", false),
           upload_resumable_threshold: ENV.fetch("QINIU_UPLOAD_RESUMABLE_THRESHOLD", DEFAULT_UPLOAD_RESUMABLE_THRESHOLD),
           upload_block_size: ENV.fetch("QINIU_UPLOAD_BLOCK_SIZE", DEFAULT_UPLOAD_BLOCK_SIZE),
           upload_chunk_size: ENV.fetch("QINIU_UPLOAD_CHUNK_SIZE", DEFAULT_UPLOAD_CHUNK_SIZE),
@@ -40,7 +40,7 @@ module QiniuStorage
         end
     end
 
-    attr_accessor :zone, :logger, :log_level, :debug_mode, :cache_dir
+    attr_accessor :zone, :logger, :log_level, :http_debug_mode, :cache_dir
     attr_accessor :upload_resumable_threshold, :upload_token_expires_in
     attr_accessor :upload_block_size, :upload_chunk_size, :upload_max_threads
     attr_accessor :download_chunk_size, :download_token_expires_in
@@ -50,8 +50,8 @@ module QiniuStorage
       self.class.defaults.each { |k, v| send("#{k}=", v) }
     end
 
-    def debug_mode?
-      debug_mode
+    def http_debug_mode?
+      http_debug_mode
     end
 
     def use_https?
