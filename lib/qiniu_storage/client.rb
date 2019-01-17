@@ -68,10 +68,9 @@ module QiniuStorage
     end
 
     def sign_http_request(method, uri_or_path, host: nil, content_type: nil, body: nil)
-      data = ""
       method = method.to_s.upcase
       uri = URI(uri_or_path.to_s)
-      data += "#{method} #{uri.path}"
+      data = "#{method} #{uri.path}"
       if uri.query
         data += "?#{uri.query}"
       end
