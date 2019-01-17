@@ -354,11 +354,11 @@ module QiniuStorage
         client.http_post url, chunk, "Authorization" => "UpToken #{token}"
       end
 
-      def mkfile(host, token, io, ctxs, key: nil, mime_type: nil, extras: nil)
+      def mkfile(host, token, io, ctxs, key: nil, mime_type: nil, extras: {})
         path = "/mkfile/#{io.size}"
         key && path << "/key/#{QiniuStorage.base64_urlsafe_encode(key)}"
         mime_type && path << "/mimeType/#{QiniuStorage.base64_urlsafe_encode(mime_type)}"
-        (extras || {}).each do |k, v|
+        extras.each do |k, v|
           var_name = "x:#{k}"
           var_value = QiniuStorage.base64_urlsafe_encode(v)
           path << "/#{var_name}/#{var_value}"
@@ -372,8 +372,8 @@ module QiniuStorage
         parts = (io_size.to_f / block_size).ceil
         (0...parts).each do |i|
           form = i * block_size
-          to = [(i + 1) * block_size, io_size].min - 1
-          yield id: i, range: form..to
+          to = [(i + 1) * block_size, io_size].min
+          yield id: i, range: form...to
         end
       end
     
