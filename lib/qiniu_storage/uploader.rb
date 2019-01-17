@@ -364,7 +364,7 @@ module QiniuStorage
 
       def verify_crc32_checksum!(data, crc32)
         checksum = QiniuStorage.crc32_checksum(data)
-        QiniuStorage.logger.debug "Verify CRC32 checksum: expected `#{checksum}`, got `#{crc32}`"
+        QiniuStorage.logger.debug "[QiniuStorage] Verify CRC32 checksum: expected `#{checksum}`, got `#{crc32}`"
         raise "Invalid CRC32, expected `#{checksum}`, but got `#{crc32}`" unless checksum == crc32
       end
   end
