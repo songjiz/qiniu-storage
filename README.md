@@ -135,6 +135,17 @@ $ gem install qiniu-storage
   # 修改元数据
   bucket.chmime "hello", "text/plain"
 
+  # 从url抓取资源
+  bucket.fetch "http://devtools.qiniu.com/qiniu.png"
+  # => #<QiniuStorage::Object:0x00007fe049b03d68 @_metadata={:fsize=>163469, :hash=>"FpHyF0kkil3sp-SaXXX8TBJY3jDh", :key=>"FpHyF0kkil3sp-SaXXX8TBJY3jDh", :mime_type=>"image/png"}>
+  bucket.fetch "http://devtools.qiniu.com/qiniu.png", "qiniu.png"
+  # => #<QiniuStorage::Object:0x00007fe0491f0488 @_metadata={:fsize=>163469, :hash=>"FpHyF0kkil3sp-SaXXX8TBJY3jDh", :key=>"qiniu.png", :mime_type=>"image/png"}>
+
+  # 从url抓取资源(异步)
+  job = bucket.async_fetch "http://devtools.qiniu.com/qiniu.png"
+  # => #<QiniuStorage::AsyncFetchJob:0x00007ff0f623d108 ...>
+  job.refresh
+
   # 下载文件
   body = bucket.download("hello")
   partial = bucket.download("hello", range: 0..1024)
@@ -248,6 +259,15 @@ obj.image?
 # => true
 obj.img_info
 # => {"size":163469,"format":"png","width":900,"height":900,"colorModel":"rgba"}
+
+# 从url抓取资源(异步)
+obj = bucket.object("qiniu.png")
+obj.async_fetch "http://devtools.qiniu.com/qiniu.png"
+# => #<QiniuStorage::AsyncFetchJob:0x00007ff0f623d108 ...>
+obj.async_fetch_job
+# => #<QiniuStorage::AsyncFetchJob:0x00007ff0f623d108 ...>
+obj.async_fetch_job.refresh
+
 
 # 上传
 obj.attach(StringIO.new("Hello, world")) # 根据 QiniuStorage.configuration.upload_resumable_threshold 值自动选择上传方式

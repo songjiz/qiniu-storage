@@ -129,7 +129,7 @@ module QiniuStorage
           range.size
         end
     
-        alias :length :size
+        alias_method :length, :size
     
         def uploaded_size
           if empty?
@@ -139,7 +139,7 @@ module QiniuStorage
           end
         end
         
-        alias :completed_size :uploaded_size
+        alias_method :completed_size, :uploaded_size
     
         def uncompleted_size
           size - uploaded_size

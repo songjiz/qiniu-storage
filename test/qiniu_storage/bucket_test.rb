@@ -112,6 +112,15 @@ class BucketTest < Minitest::Test
     assert_equal file.etag.nil?, false
     assert file.mime_type, "image/png"
     assert_equal file.image?, true
+
+    job = bucket.async_fetch("http://devtools.qiniu.com/qiniu.png")
+    assert_kind_of QiniuStorage::AsyncFetchJob, job
+    assert_equal true, !job.job_id.nil?
+    assert_equal true, !job.wait.nil?
+    assert_equal true, job.respond_to?(:refresh)
+    result = job.refresh
+    assert_equal true, result.key?("id")
+    assert_equal true, result.key?("wait")
   ensure
     bucket.drop
   end

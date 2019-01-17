@@ -171,6 +171,10 @@ class ObjectTest < Minitest::Test
     obj.fetch "http://devtools.qiniu.com/qiniu.png"
     assert_equal true, obj.exists?
     assert_equal true, obj.image?
+
+    obj2 = bucket.object("qiniu2.png")
+    obj2.async_fetch "http://devtools.qiniu.com/qiniu.png"
+    assert_equal true, !obj2.async_fetch_job.nil?
   ensure
     bucket.drop
   end

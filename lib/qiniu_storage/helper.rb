@@ -1,6 +1,8 @@
 require "base64"
 require "digest"
 require "openssl"
+require "stringio"
+require "tempfile"
 require "uri"
 require "zlib"
 require "qiniu_storage/qetag"
@@ -12,7 +14,7 @@ module QiniuStorage
     end
 
     def encode_entry(bucket, key = nil)
-      entry = [bucket, key].join(":")
+      entry = [bucket, key].compact.join(":")
       base64_urlsafe_encode entry
     end
 
@@ -36,7 +38,7 @@ module QiniuStorage
       Base64.urlsafe_decode64 data
     end
 
-    def hmac_sha1_digest(secret_key, data)
+    def hmac_sha1_digest(data, secret_key)
       digest = OpenSSL::Digest.new("sha1")
       OpenSSL::HMAC.digest digest, secret_key, data
     end
@@ -65,7 +67,7 @@ module QiniuStorage
       URI.encode_www_form(hash || {})
     end
 
-    alias :encode_params :encode_form
+    alias_method :encode_params, :encode_form
 
     def prune_hash!(hash)
       hash.delete_if do |_, val|

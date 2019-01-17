@@ -7,9 +7,10 @@ require "uri"
 
 module QiniuStorage
   class Client
-    DEFAULT_USER_AGENT   = "qiniu-storage-ruby/#{QiniuStorage::VERSION} ruby-#{RUBY_VERSION}/#{RUBY_PLATFORM}"
+    DEFAULT_USER_AGENT = "qiniu-storage-ruby/#{QiniuStorage::VERSION} ruby-#{RUBY_VERSION}/#{RUBY_PLATFORM}"
     DEFAULT_CONTENT_TYPE = "application/x-www-form-urlencoded"
-
+    WITH_HTTP_REQUEST_AUTHENTICATION_KEY = :qiniu_storage_with_http_request_authentication
+    
     attr_reader :access_key, :secret_key
 
     def initialize(access_key:, secret_key:)
@@ -42,7 +43,7 @@ module QiniuStorage
       if body && !body.empty?
         signing_str << body
       end
-      signing_str  = QiniuStorage.hmac_sha1_digest(secret_key, signing_str)
+      signing_str  = QiniuStorage.hmac_sha1_digest(signing_str, secret_key)
       encoded_sign = QiniuStorage.base64_urlsafe_encode(signing_str)
       [access_key, encoded_sign].join(":")
     end
@@ -61,9 +62,30 @@ module QiniuStorage
         upload_policy[ck] = upload_policy.delete(pk)
       end
       encoded_policy = QiniuStorage.base64_urlsafe_encode(upload_policy.to_json)
-      hmac_sha1_sign = QiniuStorage.hmac_sha1_digest(secret_key, encoded_policy)
+      hmac_sha1_sign = QiniuStorage.hmac_sha1_digest(encoded_policy, secret_key)
       encoded_sign   = QiniuStorage.base64_urlsafe_encode(hmac_sha1_sign)
       [access_key, encoded_sign, encoded_policy].join ":"
+    end
+
+    def sign_http_request(method, uri_or_path, host: nil, content_type: nil, body: nil)
+      data = ""
+      method = method.to_s.upcase
+      uri = URI(uri_or_path.to_s)
+      data += "#{method} #{uri.path}"
+      if uri.query
+        data += "?#{uri.query}"
+      end
+      data += "\nHost: #{host || uri.host}"
+      if content_type
+        data += "\nContent-Type: #{content_type}"
+      end
+      data += "\n\n"
+      if content_type =~ /(application\/json)|(application\/x-www-form-urlencoded)/ && body
+        data += body
+      end
+      hmac_sha1_sign = QiniuStorage.hmac_sha1_digest(data, secret_key)
+      encoded_sign   = QiniuStorage.base64_urlsafe_encode(hmac_sha1_sign)
+      [access_key, encoded_sign].join ":"
     end
 
     def sign_url(url, expires_in)
@@ -75,8 +97,8 @@ module QiniuStorage
       else
         url << "?e=#{expires_at}"
       end
-      signing_str  = QiniuStorage.hmac_sha1_digest(secret_key, uri.to_s)
-      encoded_sign = QiniuStorage.base64_urlsafe_encode(signing_str)
+      hmac_sha1_sign = QiniuStorage.hmac_sha1_digest(uri.to_s, secret_key)
+      encoded_sign   = QiniuStorage.base64_urlsafe_encode(hmac_sha1_sign)
       token = [access_key, encoded_sign].join(":")
       url << "&token=#{token}"
       url
@@ -136,8 +158,12 @@ module QiniuStorage
     def http_get(url, headers = {})
       uri = URI(url)
       http = build_http(uri)
-      request = Net::HTTP::Get.new(uri.request_uri)
+      request = Net::HTTP::Get.new(uri)
       default_headers.merge!(headers).each { |k, v| request[k] = v }
+      if with_http_request_authentication?
+        token = sign_http_request(request.method, request.uri, content_type: request["Content-Type"])
+        request["Authorization"] = "Qiniu #{token}"
+      end
       response = http.request(request)
       handle_response response
     end
@@ -145,7 +171,7 @@ module QiniuStorage
     def http_post(url, data = "", headers = {})
       uri = URI(url)
       http = build_http(uri)
-      request = Net::HTTP::Post.new(uri.request_uri)
+      request = Net::HTTP::Post.new(uri)
       default_headers.merge!(headers).each { |k, v| request[k] = v }
       case data
       when Hash, Array
@@ -157,9 +183,29 @@ module QiniuStorage
         end
       when String
         request.body = data
+      else
+        if QiniuStorage.streamable?(data)
+          request.body_stream = data
+        end
+      end
+      if with_http_request_authentication?
+        token = sign_http_request(request.method, request.uri, content_type: request["Content-Type"], body: request.body)
+        request["Authorization"] = "Qiniu #{token}"
       end
       response = http.request(request)
       handle_response response
+    end
+
+    # With this method each HTTP Request will reset the `Authorization` HTTP Header via `sign_http_request` method.
+    def with_http_request_authentication(&block)
+      Thread.current[WITH_HTTP_REQUEST_AUTHENTICATION_KEY] = true
+      yield
+    ensure
+      Thread.current[WITH_HTTP_REQUEST_AUTHENTICATION_KEY] = false
+    end
+
+    def with_http_request_authentication?
+      Thread.current[WITH_HTTP_REQUEST_AUTHENTICATION_KEY]
     end
 
     private

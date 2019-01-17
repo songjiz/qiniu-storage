@@ -28,7 +28,7 @@ module QiniuStorage
       rs_post "/drop/#{name}"
     end
 
-    alias :drop :destroy
+    alias_method :drop, :destroy
 
     def domains
       @domains ||= api_get("/v6/domain/list", params: { tbl: name })
@@ -67,13 +67,13 @@ module QiniuStorage
       QiniuStorage::Object::Bundle.new bucket: self, limit: limit, prefix: prefix, delimiter: delimiter, marker: marker
     end
 
-    alias :files :objects
+    alias_method :files, :objects
 
     def object(key)
       QiniuStorage::Object.new(bucket: self, key: key)
     end
 
-    alias :file :object
+    alias_method :file, :object
 
     def encoded_uri(key)
       QiniuStorage.encode_entry self, key
@@ -83,7 +83,7 @@ module QiniuStorage
       rs_get QiniuStorage::Operation::Stat.new(bucket: self, key: key)
     end
 
-    alias :metadata :stat
+    alias_method :metadata, :stat
 
     def exists?
       client.buckets.any? { |other| other.name == self.name }
@@ -93,7 +93,7 @@ module QiniuStorage
       rs_post QiniuStorage::Operation::Delete.new(bucket: self, key: key)
     end
 
-    alias :remove :delete
+    alias_method :remove, :delete
 
     def rename(key, new_key, force: false)
       move key, to_bucket: self, to_key: new_key, force: force
@@ -151,12 +151,39 @@ module QiniuStorage
       rs_post QiniuStorage::Operation::DeleteAfterDays.new(bucket: self, key: extract_file_key(key), days: days)
     end
 
-    alias :life_cycle :delete_after_days
+    alias_method :life_cycle, :delete_after_days
 
     def fetch(source_url, key = nil)
       op = QiniuStorage::Operation::Fetch.new(bucket: self, key: key, source_url: source_url)
       data = iovip_post(op)
       QiniuStorage::Object.new(bucket: self, key: key).tap { |f| f.update_metadata data }
+    end
+
+    def async_fetch(source_url, key: nil, md5: nil, etag: nil, callback_url: nil, callback_body: nil, callback_body_type: nil, callback_host: nil, file_type: 0, force: false)
+      payload = {
+        url: source_url,
+        bucket: name,
+        key: key,
+        md5: md5,
+        etag: etag,
+        ignore_same_key: !force,
+        callbackurl: callback_url,
+        callbackbody: callback_body,
+        callbackbodytype: callback_body_type,
+        callbackhost: callback_host,
+        file_type: file_type
+      }
+      QiniuStorage.prune_hash!(payload)
+      client.with_http_request_authentication do
+        result = client.http_post(client.build_url(host: zone.api_host, path: "/sisyphus/fetch"), payload.to_json, "Content-Type" => "application/json")
+        QiniuStorage::AsyncFetchJob.new(bucket: self, job_id: result["id"], wait: result["wait"])
+      end
+    end
+
+    def async_fetch_job(job_id)
+      client.with_http_request_authentication do
+        client.http_get client.build_url(host: zone.api_host, path: "/sisyphus/fetch", params: { id: job_id }), "Content-Type" => "application/json"
+      end
     end
 
     def prefetch(key)
@@ -222,7 +249,7 @@ module QiniuStorage
       end
     end
     
-    alias :object_url :url_for
+    alias_method :object_url, :url_for
 
     def download(key, range: nil, expires_in: nil)
       range_header = \

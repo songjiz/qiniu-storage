@@ -30,7 +30,7 @@ module QiniuStorage
         entities.dup
       end
 
-      alias :to_a :to_ary
+      alias_method :to_a, :to_ary
 
       def reload
         @next_marker = nil
@@ -68,15 +68,15 @@ module QiniuStorage
         entities.length
       end
 
-      alias :size :length
+      alias_method :size, :length
 
       def batch_delete
         bucket.batch_delete keys
       end
 
-      alias :batch_remove :batch_delete
-      alias :delete_all :batch_delete
-      alias :remove :batch_delete
+      alias_method :batch_remove, :batch_delete
+      alias_method :delete_all, :batch_delete
+      alias_method :remove, :batch_delete
 
       def batch_stat
         bucket.batch_stat(keys).tap do |res|
@@ -88,8 +88,8 @@ module QiniuStorage
         end
       end
 
-      alias :stat :batch_stat
-      alias :metadata :batch_stat
+      alias_method :stat, :batch_stat
+      alias_method :metadata, :batch_stat
 
       def batch_move(to_bucket, force: false)
         target_bucket = build_bucket(to_bucket)
@@ -102,14 +102,14 @@ module QiniuStorage
         end
       end
 
-      alias :move :batch_move
+      alias_method :move, :batch_move
 
       def batch_copy(to_bucket, force: false)
         target_bucket = build_bucket(to_bucket)
         bucket.batch_copy(keys, target_bucket, force: force)
       end
 
-      alias :copy :batch_copy
+      alias_method :copy, :batch_copy
 
       def batch_chstatus(status)
         bucket.batch_chstatus(keys, status).tap do |res|
@@ -121,19 +121,19 @@ module QiniuStorage
         end
       end
 
-      alias :chstatus :batch_chstatus
+      alias_method :chstatus, :batch_chstatus
 
       def batch_enable
         batch_chstatus 0
       end
 
-      alias :enable :batch_enable
+      alias_method :enable, :batch_enable
 
       def batch_disable
         batch_chstatus 1
       end
 
-      alias :disable :batch_disable
+      alias_method :disable, :batch_disable
 
       def batch_chtype(type)
         bucket.batch_chtype(keys, type).tap do |res|
@@ -145,7 +145,7 @@ module QiniuStorage
         end
       end
 
-      alias :chtype :batch_chtype
+      alias_method :chtype, :batch_chtype
 
       def batch_chmime(mime)
         bucket.batch_chmime(keys, mime).tap do |res|
@@ -157,19 +157,19 @@ module QiniuStorage
         end
       end
 
-      alias :chmime :batch_chmime
+      alias_method :chmime, :batch_chmime
 
       def batch_standardize
         batch_chtype 0
       end
 
-      alias :standardize :batch_standardize
+      alias_method :standardize, :batch_standardize
 
       def batch_low_freq
         batch_chtype 1
       end
 
-      alias :low_freq :batch_low_freq
+      alias_method :low_freq, :batch_low_freq
 
       def reload
         @entities = nil
@@ -271,7 +271,7 @@ module QiniuStorage
       RUBY
     end
 
-    alias :size :fsize
+    alias_method :size, :fsize
 
     def image?
       mime_type.to_s.start_with? "image"
@@ -320,7 +320,7 @@ module QiniuStorage
       bucket.delete_after_days key, days
     end
 
-    alias :life_cycle :delete_after_days
+    alias_method :life_cycle, :delete_after_days
 
     def standard?
       type.zero?
@@ -349,7 +349,7 @@ module QiniuStorage
       bucket.stat(key).tap { |options| update_metadata(options) }
     end
     
-    alias :metadata :stat
+    alias_method :metadata, :stat
 
     def chmime(mime)
       bucket.chmime(key, mime)
@@ -373,7 +373,7 @@ module QiniuStorage
       bucket.delete key
     end
 
-    alias :remove :delete
+    alias_method :remove, :delete
 
     def rename(to_key, force: false)
       bucket.rename key, to_key, force: force
@@ -388,6 +388,14 @@ module QiniuStorage
       self
     end
 
+    def async_fetch(source_url, options = {})
+      @async_fetch_job = bucket.async_fetch(source_url, options.merge(key: key))
+    end
+
+    def async_fetch_job
+      @async_fetch_job
+    end
+
     def prefetch
       bucket.prefetch key
     end
@@ -396,7 +404,7 @@ module QiniuStorage
       bucket.upload source, options.merge(key: key)
     end
 
-    alias :attach :put
+    alias_method :attach, :put
 
     def multipart_upload(source, options = {})
       bucket.multipart_upload source, options.merge(key: key)
