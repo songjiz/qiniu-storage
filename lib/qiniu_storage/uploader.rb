@@ -358,7 +358,7 @@ module QiniuStorage
         path = "/mkfile/#{io.size}"
         key && path << "/key/#{QiniuStorage.base64_urlsafe_encode(key)}"
         mime_type && path << "/mimeType/#{QiniuStorage.base64_urlsafe_encode(mime_type)}"
-        extras.each do |k, v|
+        (extras || {}).each do |k, v|
           var_name = "x:#{k}"
           var_value = QiniuStorage.base64_urlsafe_encode(v)
           path << "/#{var_name}/#{var_value}"
