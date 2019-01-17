@@ -354,7 +354,7 @@ module QiniuStorage
         client.http_post url, chunk, "Authorization" => "UpToken #{token}"
       end
 
-      def mkfile(host, token, io, ctxs, key: nil, mime_type: nil, extras: {})
+      def mkfile(host, token, io, ctxs, key: nil, mime_type: nil, extras: nil)
         path = "/mkfile/#{io.size}"
         key && path << "/key/#{QiniuStorage.base64_urlsafe_encode(key)}"
         mime_type && path << "/mimeType/#{QiniuStorage.base64_urlsafe_encode(mime_type)}"
