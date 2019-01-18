@@ -180,13 +180,13 @@ module QiniuStorage
 
       private
         def filter_params
-          QiniuStorage.prune_hash!(
+          {
             bucket: @bucket.name,
             limit: @limit,
             prefix: @prefix,
             delimiter: @delimiter,
             marker: @marker
-          )
+        }
         end
 
         def load_entities

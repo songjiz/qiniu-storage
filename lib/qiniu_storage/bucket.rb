@@ -2,22 +2,22 @@ module QiniuStorage
   class Bucket
     extend Forwardable
 
-    attr_reader :name, :client, :region
+    attr_reader :name, :client
     def_delegators :client, :generate_access_token, :sign_url
     def_delegators :client, :uc_post, :api_get, :rs_get, :rs_post, :rsf_get, :iovip_post
 
-    def initialize(name:, client:, region: nil)
+    def initialize(name:, client:)
       @name = name
       @client = client
-      @region = region || QiniuStorage.configuration.zone
     end
 
     def to_s
       name
     end
 
-    def create
+    def create(region = nil)
       path = "/mkbucketv2/#{encoded_name}"
+      region ||= QiniuStorage.configuration.zone
       if region
         path << "/region/#{region}"
       end
@@ -35,14 +35,17 @@ module QiniuStorage
     end
 
     def zone
-      @zone ||= begin
-        zone = QiniuStorage::Zone[region]
-        return zone unless zone.nil?
-        data = uc_post("/v2/query", params: { ak: client.access_key, bucket: name })
+      @zone ||= Zone[QiniuStorage.configuration.zone] || Zone.default
+    end
+
+    # Fetch from API
+    def fetch_zone
+      @zone = begin
+        data = uc_post("/v1/query", params: { ak: client.access_key, bucket: name })
         iovip_host = data["io"]["src"]["main"].first
         src_up_hosts = Array(data["up"]["src"]["main"]) + Array(data["up"]["src"]["backup"])
         cdn_up_hosts = Array(data["up"]["acc"]["main"]) + Array(data["up"]["acc"]["backup"])
-        QiniuStorage::Zone.new name: region, iovip_host: iovip_host, src_up_hosts: src_up_hosts, cdn_up_hosts: cdn_up_hosts
+        QiniuStorage::Zone.new iovip_host: iovip_host, src_up_hosts: src_up_hosts, cdn_up_hosts: cdn_up_hosts
       end
     end
 
@@ -173,7 +176,6 @@ module QiniuStorage
         callbackhost: callback_host,
         file_type: file_type
       }
-      QiniuStorage.prune_hash!(payload)
       client.with_http_request_authentication do
         result = client.http_post(client.build_url(host: zone.api_host, path: "/sisyphus/fetch"), payload.to_json, "Content-Type" => "application/json")
         QiniuStorage::AsyncFetchJob.new(bucket: self, job_id: result["id"], wait: result["wait"])

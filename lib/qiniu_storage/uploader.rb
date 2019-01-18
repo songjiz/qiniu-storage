@@ -6,6 +6,28 @@ module QiniuStorage
   class Uploader
     extend Forwardable
     
+    using Module.new {
+      refine Hash do
+        def deep_symbolize_keys!
+          keys.each do |key|
+            val = self.delete key
+            self[(key.to_sym rescue key)] = \
+              case val
+              when Hash
+                val.deep_symbolize_keys!
+              when Array
+                val.map do |item|
+                  item.is_a?(Hash) ? item.deep_symbolize_keys! : item
+                end
+              else
+                val
+              end
+          end
+          self
+        end unless method_defined? :deep_symbolize_keys!
+      end
+    }
+
     module Resumable
       class Context
         attr_reader :value, :offset, :expired_at, :checksum, :crc32
@@ -43,13 +65,35 @@ module QiniuStorage
         end
     
         def clear
-          synchronize { @parts.clear }
+          synchronize { parts.clear }
         end
     
         def take
           synchronize do
-            part = @parts.detect { |part| !part.complete? && !part.took? }
+            part = parts.detect { |part| !part.completed? && !part.took? }
             part && part.took!
+          end
+        end
+
+        def completed
+          synchronize do
+            parts.select(&:completed?)
+          end
+        end
+
+        def completed?
+          !uncompleted?
+        end
+
+        def uncompleted
+          synchronize do
+            parts.select(&:uncompleted?)
+          end
+        end
+
+        def uncompleted?
+          synchronize do
+            parts.any?(&:uncompleted?)
           end
         end
     
@@ -59,11 +103,11 @@ module QiniuStorage
         end
     
         def last_ctx_values
-          synchronize { @parts.sort_by(&:id).map(&:last_ctx).map(&:value) }
+          synchronize { parts.sort_by(&:id).map(&:last_ctx).map(&:value) }
         end
     
         def to_h
-          { token: token, parts: @parts.map(&:to_h) }
+          { token: token, parts: parts.map(&:to_h) }
         end
     
         private
@@ -74,9 +118,9 @@ module QiniuStorage
           def _push_part(part)
             case part
             when QiniuStorage::Uploader::Resumable::Part
-              @parts.push part
+              parts.push part
             when Hash
-              @parts.push QiniuStorage::Uploader::Resumable::Part.new(part)
+              parts.push QiniuStorage::Uploader::Resumable::Part.new(part)
             else
               raise ArgumentError, "Expected a QiniuStorage::Uploader::Resumable::Part or Hash, but got #{part.inspect}"
             end
@@ -121,8 +165,12 @@ module QiniuStorage
           @ctxs.empty?
         end
     
-        def complete?
+        def completed?
           last_ctx && (offset + last_ctx.offset - 1) == range.max
+        end
+
+        def uncompleted?
+          !completed?
         end
     
         def size
@@ -162,7 +210,7 @@ module QiniuStorage
         end
     
         def to_h
-          { id: id, range: range, ctxs: ctxs.map(&:to_h) }
+          { id: id, range: [range.begin, range.max], ctxs: ctxs.map(&:to_h) }
         end
       end
     end
@@ -196,7 +244,9 @@ module QiniuStorage
       expires_in = options.fetch(:expires_in, QiniuStorage.configuration.upload_token_expires_in)
       with_streamable(source) do |stream|
         form = {}
-        form["key"] = options[:key]
+        if options[:key]
+          form["key"] = options[:key]
+        end
         if !options.fetch(:skip_crc32, QiniuStorage.configuration.skip_crc32_checksum?)
           form["crc32"] = QiniuStorage.crc32_checksum(stream).to_s
         end
@@ -204,8 +254,6 @@ module QiniuStorage
         form["token"] = generate_upload_token(bucket.name, form["key"], expires_in, policy: policy)
         options.fetch(:extras, {}).each { |k, v| form["x:#{k}"] = v }
         url = client.build_url(host: bucket.up_host)
-        # Fix: no implicit conversion of nil into String
-        QiniuStorage.prune_hash!(form)
         result = client.http_post(url, form, "Content-Type" => "multipart/form-data")
         QiniuStorage::Object.new(bucket: bucket, key: result["key"], hash: result["hash"])
       end
@@ -219,7 +267,7 @@ module QiniuStorage
       expires_in = options.fetch(:expires_in, QiniuStorage.configuration.upload_token_expires_in)
       block_size = options.fetch(:block_size, QiniuStorage.configuration.upload_block_size)
       chunk_size = options.fetch(:chunk_size, QiniuStorage.configuration.upload_chunk_size)
-      threads_count = options.fetch(:threads, QiniuStorage.configuration.upload_max_threads)
+      threads_count = options.fetch(:threads, QiniuStorage.configuration.upload_max_threads).to_i
       skip_crc32 = options.fetch(:skip_crc32_checksum, QiniuStorage.configuration.skip_crc32_checksum?)
       with_streamable(source) do |stream|
         progress_file = lookup_resumable_progress_file(bucket, stream)
@@ -227,11 +275,12 @@ module QiniuStorage
         token = progress.token
         if invalid_upload_token?(token)
           token = generate_upload_token(bucket.name, options[:key], expires_in, policy: policy)
+          QiniuStorage.logger.debug "[QiniuStorage] Generate upload token `#{token}`"
           progress.clear
           progress.token = token
           generate_parts(stream.size, block_size) { |part| progress.push part }
         end
-        (1..threads_count).map { schedule_upload_part(up_host, token, stream, progress, chunk_size, skip_crc32) }.map(&:join)
+        (1..[threads_count, progress.parts.count].min).map { schedule_upload_part(up_host, token, stream, progress, chunk_size, skip_crc32) }.map(&:join)
         result = mkfile(up_host, token, stream, progress.last_ctx_values, key: options[:key], mime_type: options[:mime_type], extras: options[:extras])
         complete = true
         QiniuStorage::Object.new(bucket: bucket, key: result["key"], hash: result["hash"])
@@ -283,11 +332,12 @@ module QiniuStorage
 
     def load_resumable_progress(from)
       resumable_synchronize do
-        attrs = JSON.load(File.read(from))
-        Resumable::Progress.new(attrs)
-      end
-    rescue
-      Resumable::Progress.new
+        hash = JSON.load(File.read from)
+        Resumable::Progress.new hash.deep_symbolize_keys!
+      rescue => e
+        QiniuStorage.logger.debug "[QiniuStorage] Faild to open progress file, reason: #{e.message}"
+        Resumable::Progress.new
+      end      
     end
 
     private
@@ -320,7 +370,11 @@ module QiniuStorage
         Thread.new do
           loop do
             part = progress.take
-            break unless part
+            unless part
+              QiniuStorage.logger.debug "[QiniuStorage] Not more parts to upload, thead##{Thread.current.object_id} quit."
+              break
+            end
+            QiniuStorage.logger.debug "[QiniuStorage] Start uploading part #{part.id + 1}/#{progress.parts.count} in thead##{Thread.current.object_id}"
             upload_part host, token, io, part, chunk_size, skip_crc32
           end
         end
@@ -334,7 +388,7 @@ module QiniuStorage
           !skip_crc32 && verify_crc32_checksum!(chunk, result["crc32"])
           part.push(value: result["ctx"], offset: result["offset"], checksum: result["checksum"], crc32: result["crc32"], expired_at: result["expired_at"])
         end
-        until part.complete? do
+        until part.completed? do
           ctx = part.last_ctx
           io.seek(part.offset + ctx.offset)
           chunk = io.read([chunk_size, part.uncompleted_size].min)
@@ -383,7 +437,6 @@ module QiniuStorage
 
       def verify_crc32_checksum!(data, crc32)
         checksum = QiniuStorage.crc32_checksum(data)
-        QiniuStorage.logger.debug "[QiniuStorage] Verify CRC32 checksum: expected `#{checksum}`, got `#{crc32}`"
         raise "Invalid CRC32, expected `#{checksum}`, but got `#{crc32}`" unless checksum == crc32
       end
   end

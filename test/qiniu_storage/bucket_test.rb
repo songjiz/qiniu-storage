@@ -19,13 +19,6 @@ class BucketTest < Minitest::Test
   ensure
     bucket.drop
   end
-
-  def test_region
-    bucket = @client.bucket("test-#{SecureRandom.uuid}")
-    assert_equal bucket.region.to_s, "z0"
-    bucket = @client.bucket("test-#{SecureRandom.uuid}", region: "z1")
-    assert_equal bucket.region.to_s, "z1"
-  end
   
   def test_create_and_drop
     bucket = @client.bucket("test-#{SecureRandom.uuid}")
@@ -33,6 +26,10 @@ class BucketTest < Minitest::Test
     bucket.create
     sleep 2
     assert_equal bucket.exists?, true
+    # Aready exists
+    assert_raises QiniuStorage::Error do
+      bucket.create :z1
+    end
     bucket.drop
     sleep 2
     assert_equal bucket.exists?, false

@@ -13,9 +13,9 @@ module QiniuStorage
     
     attr_reader :access_key, :secret_key
 
-    def initialize(access_key:, secret_key:)
-      @access_key = access_key
-      @secret_key = secret_key
+    def initialize(access_key: nil, secret_key: nil)
+      @access_key = access_key || ENV["QINIU_ACCESS_KEY"]
+      @secret_key = secret_key || ENV["QINIU_SECRET_KEY"]
     end
 
     def buckets
@@ -25,8 +25,8 @@ module QiniuStorage
       Array(data).map { |name| bucket name }
     end
 
-    def bucket(name, region: nil)
-      QiniuStorage::Bucket.new name: name, client: self, region: region
+    def bucket(name)
+      QiniuStorage::Bucket.new name: name, client: self
     end
 
     def uploader

@@ -26,7 +26,7 @@ $ gem install qiniu-storage
 
 ## 使用
 
- - 配置
+ ### 配置
 
  ```ruby
   QiniuStorage.configure do |config|
@@ -48,10 +48,30 @@ $ gem install qiniu-storage
     config.cache_dir = File.join(Dir.home, ".qiniu")
   end
 
-  client = QiniuStorage.new(access_key: ENV['QINIU_ACCESS_KEY'], secret_key: ENV['QINIU_SECRET_KEY'])
+  client = QiniuStorage.new(access_key: "your_access_key", secret_key: "your_secret_key")
+
+  client = QiniuStorage.new # 使用 ENV['QINIU_ACCESS_KEY'] 和 ['QINIU_SECRET_KEY']
  ```
 
- - Bucket 接口
+  默认会读取以下 `ENV` 变量:
+  - QINIU_ACCESS_KEY
+  - QINIU_SECRET_KEY
+  - QINIU_ZONE
+  - QINIU_HTTP_DEBUG_MODE
+  - QINIU_UPLOAD_RESUMABLE_THRESHOLD
+  - QINIU_UPLOAD_BLOCK_SIZE
+  - QINIU_UPLOAD_CHUNK_SIZE
+  - QINIU_UPLOAD_TOKEN_EXPIRES_IN
+  - QINIU_UPLOAD_MAX_THREADS
+  - QINIU_DOWNLOAD_CHUNK_SIZE
+  - QINIU_DOWNLOAD_TOKEN_EXPIRES_IN
+  - QINIU_USE_HTTPS
+  - QINIU_USE_CDN
+  - QINIU_SKIP_CRC32_CHECKSUM
+  - QINIU_USE_UPLOAD_CACHE
+  - QINIU_CACHE_DIR
+
+ ### Bucket 接口
 
  ```ruby
   # 获取列表
@@ -62,10 +82,9 @@ $ gem install qiniu-storage
   bucket = client.bucket('test')
   # => #<QiniuStorage::Bucket:0x00007fdf2b298648 @name="test", @client=#<QiniuStorage::Client:0x00007fdf2c837260 @access_key="", @secret_key="">, @region=:z0>
 
-  # 指定存储区域
-  bucket = client.bucket('test', region: 'z1')
-
   bucket.create
+  # 指定存储区域
+  bucket.create(:z1)
   bucket.exists?
   # => true
 
@@ -159,7 +178,7 @@ $ gem install qiniu-storage
   end
  ```
 
-- Object 接口
+### Object 接口
 
 ```ruby
 # 资源列举

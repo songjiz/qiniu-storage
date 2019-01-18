@@ -9,6 +9,19 @@ require "qiniu_storage/qetag"
 
 module QiniuStorage
   module Helper
+    # using Module.new {
+    #   refine Hash do
+    #     def prune!
+    #       delete_if do |_, val|
+    #         if val.is_a?(Hash)
+    #           val.prune!
+    #         end
+    #         val.nil? || (val.respond_to?(:empty?) && val.empty?)
+    #       end
+    #     end
+    #   end
+    # }
+
     def qetag(source)
       QiniuStorage::QEtag.etag source
     end
@@ -68,13 +81,6 @@ module QiniuStorage
     end
 
     alias_method :encode_params, :encode_form
-
-    def prune_hash!(hash)
-      hash.delete_if do |_, val|
-        val.is_a?(Hash) && prune_hash!(val)
-        val.nil? || (val.respond_to?(:empty?) && val.empty?)
-      end
-    end
 
     def build_url(host:, port: nil, path: nil, params: nil, use_https: nil)
       options = { host: host, port: port, path: path }

@@ -18,7 +18,7 @@ module QiniuStorage
       end
       
       def z0
-        new({
+        @z0 ||= new({
           name: "z0",
           src_up_hosts: [
             "up.qiniup.com",
@@ -34,7 +34,7 @@ module QiniuStorage
       end
 
       def z1
-        new({
+        @z1 ||= new({
           name: "z1",
           src_up_hosts: [
             "up-z1.qiniup.com"
@@ -46,7 +46,7 @@ module QiniuStorage
       end
 
       def z2
-        new({
+        @z2 ||= new({
           name: "z2",
           src_up_hosts: [
             "up-z2.qiniup.com"
@@ -58,7 +58,7 @@ module QiniuStorage
       end
 
       def na0
-        new({
+        @na0 ||= new({
           name: "na0",
           src_up_hosts: [
             "up-na0.qiniup.com"
@@ -70,7 +70,7 @@ module QiniuStorage
       end
 
       def as0
-        new({
+       @as0 ||= new({
           name: "as0",
           src_up_hosts: [
             "up-as0.qiniup.com"
@@ -81,8 +81,8 @@ module QiniuStorage
         })
       end
 
-      def [](region)
-        zones_map[region.to_s]
+      def [](name)
+        zones_map[name.to_s]
       end
     end
 
@@ -90,7 +90,7 @@ module QiniuStorage
     attr_reader :src_up_hosts, :cdn_up_hosts, :iovip_host
     attr_reader :rs_host, :rsf_host, :api_host, :uc_host
 
-    def initialize(name:, **options)
+    def initialize(name: nil, **options)
       @name = name
       @src_up_hosts = Array(options[:src_up_hosts])
       @cdn_up_hosts = Array(options[:cdn_up_hosts])
