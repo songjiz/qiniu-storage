@@ -9,18 +9,6 @@ require "qiniu_storage/qetag"
 
 module QiniuStorage
   module Helper
-    # using Module.new {
-    #   refine Hash do
-    #     def prune!
-    #       delete_if do |_, val|
-    #         if val.is_a?(Hash)
-    #           val.prune!
-    #         end
-    #         val.nil? || (val.respond_to?(:empty?) && val.empty?)
-    #       end
-    #     end
-    #   end
-    # }
 
     def qetag(source)
       QiniuStorage::QEtag.etag source
