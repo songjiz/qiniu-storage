@@ -370,7 +370,7 @@ module QiniuStorage
           loop do
             part = progress.take
             unless part
-              QiniuStorage.logger.debug "[QiniuStorage] Not more parts to upload, thead##{Thread.current.object_id} quit."
+              QiniuStorage.logger.debug "[QiniuStorage] No more parts to upload, thead##{Thread.current.object_id} quit."
               break
             end
             QiniuStorage.logger.debug "[QiniuStorage] Start uploading part #{part.id + 1}/#{progress.parts.count} in thead##{Thread.current.object_id}"
