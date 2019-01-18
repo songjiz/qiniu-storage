@@ -176,14 +176,14 @@ module QiniuStorage
         callbackhost: callback_host,
         file_type: file_type
       }
-      client.with_http_request_authentication do
+      QiniuStorage.with_signed_http_request do
         result = client.http_post(client.build_url(host: zone.api_host, path: "/sisyphus/fetch"), payload.to_json, "Content-Type" => "application/json")
         QiniuStorage::AsyncFetchJob.new(bucket: self, job_id: result["id"], wait: result["wait"])
       end
     end
 
     def async_fetch_job(job_id)
-      client.with_http_request_authentication do
+      QiniuStorage.with_signed_http_request do
         client.http_get client.build_url(host: zone.api_host, path: "/sisyphus/fetch", params: { id: job_id }), "Content-Type" => "application/json"
       end
     end

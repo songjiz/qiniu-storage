@@ -34,5 +34,17 @@ module QiniuStorage
         yield configuration
       end
     end
+
+    # With this method each HTTP Request will reset the `Authorization` HTTP Header via `sign_http_request` method.
+    def with_signed_http_request
+      Thread.current[:qiniu_storage_with_signed_http_request] = true
+      yield
+    ensure
+      Thread.current[:qiniu_storage_with_signed_http_request] = false
+    end
+
+    def with_signed_http_request?
+      Thread.current[:qiniu_storage_with_signed_http_request] == true
+    end
   end
 end

@@ -275,7 +275,6 @@ module QiniuStorage
         token = progress.token
         if invalid_upload_token?(token)
           token = generate_upload_token(bucket.name, options[:key], expires_in, policy: policy)
-          QiniuStorage.logger.debug "[QiniuStorage] Generate upload token `#{token}`"
           progress.clear
           progress.token = token
           generate_parts(stream.size, block_size) { |part| progress.push part }

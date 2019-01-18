@@ -9,7 +9,6 @@ module QiniuStorage
   class Client
     DEFAULT_USER_AGENT = "qiniu-storage-ruby/#{QiniuStorage::VERSION} ruby-#{RUBY_VERSION}/#{RUBY_PLATFORM}"
     DEFAULT_CONTENT_TYPE = "application/x-www-form-urlencoded"
-    WITH_HTTP_REQUEST_AUTHENTICATION_KEY = :qiniu_storage_with_http_request_authentication
     
     attr_reader :access_key, :secret_key
 
@@ -159,7 +158,7 @@ module QiniuStorage
       http = build_http(uri)
       request = Net::HTTP::Get.new(uri)
       default_headers.merge!(headers).each { |k, v| request[k] = v }
-      if with_http_request_authentication?
+      if QiniuStorage.with_signed_http_request?
         token = sign_http_request(request.method, request.uri, content_type: request["Content-Type"])
         request["Authorization"] = "Qiniu #{token}"
       end
@@ -187,24 +186,12 @@ module QiniuStorage
           request.body_stream = data
         end
       end
-      if with_http_request_authentication?
+      if QiniuStorage.with_signed_http_request?
         token = sign_http_request(request.method, request.uri, content_type: request["Content-Type"], body: request.body)
         request["Authorization"] = "Qiniu #{token}"
       end
       response = http.request(request)
       handle_response response
-    end
-
-    # With this method each HTTP Request will reset the `Authorization` HTTP Header via `sign_http_request` method.
-    def with_http_request_authentication(&block)
-      Thread.current[WITH_HTTP_REQUEST_AUTHENTICATION_KEY] = true
-      yield
-    ensure
-      Thread.current[WITH_HTTP_REQUEST_AUTHENTICATION_KEY] = false
-    end
-
-    def with_http_request_authentication?
-      Thread.current[WITH_HTTP_REQUEST_AUTHENTICATION_KEY]
     end
 
     private
