@@ -242,7 +242,7 @@ module QiniuStorage
     end
 
     def url_for(key, options = {})
-      public_url = client.build_url(host: domains.first, path: "/#{key}", params: { fop: options[:fop].to_s }, use_https: options[:use_https])
+      public_url = client.build_url(host: domains.first, path: "/#{key}", params: { fop: options[:fop].to_s }, use_ssl: options[:use_ssl])
       expires_in = options[:expires_in]
       if expires_in
         sign_url public_url, expires_in
@@ -265,7 +265,7 @@ module QiniuStorage
         end
       # Fix me: OpenSSL::SSL::SSLError: SSL_connect returned=1 errno=0 state=SSLv2/v3 read server hello A: sslv3 alert handshake failure
       # use HTTP instead of HTTPS temporarily
-      client.http_get url_for(key, use_https: false, expires_in: expires_in), range: range_header
+      client.http_get url_for(key, use_ssl: false, expires_in: expires_in), range: range_header
     end
 
     def streaming_download(key, offset: 0, chunk_size: nil, expires_in: nil)
@@ -293,8 +293,8 @@ module QiniuStorage
       uploader.append(source, self, key, options)
     end
 
-    def direct_upload_url(use_https: nil)
-      client.build_url host: up_host, use_https: use_https
+    def direct_upload_url(use_ssl: nil)
+      client.build_url host: up_host, use_ssl: use_ssl
     end
 
     def encoded_name

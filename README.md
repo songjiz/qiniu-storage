@@ -41,7 +41,7 @@ $ gem install qiniu-storage
     config.upload_max_threads = 2
     config.download_chunk_size = 4 * 1024 * 1024
     config.download_token_expires_in = 1 * 24 * 60 * 60
-    config.use_https = true
+    config.use_ssl = true
     config.use_cdn = false
     config.skip_crc32_checksum = false
     config.use_upload_cache = true
@@ -65,7 +65,7 @@ $ gem install qiniu-storage
   - QINIU_UPLOAD_MAX_THREADS
   - QINIU_DOWNLOAD_CHUNK_SIZE
   - QINIU_DOWNLOAD_TOKEN_EXPIRES_IN
-  - QINIU_USE_HTTPS
+  - QINIU_USE_SSL
   - QINIU_USE_CDN
   - QINIU_SKIP_CRC32_CHECKSUM
   - QINIU_USE_UPLOAD_CACHE

@@ -149,8 +149,8 @@ module QiniuStorage
       end
     end
 
-    def build_url(host:, path: nil, params: nil, use_https: nil)
-      QiniuStorage.build_url host: host, path: path.to_s, params: params, use_https: use_https.nil? ? QiniuStorage.configuration.use_https? : use_https
+    def build_url(host:, path: nil, params: nil, use_ssl: nil)
+      QiniuStorage.build_url host: host, path: path.to_s, params: params, use_ssl: use_ssl.nil? ? QiniuStorage.configuration.use_ssl? : use_ssl
     end
 
     def http_get(url, headers = {})

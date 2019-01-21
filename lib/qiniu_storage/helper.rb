@@ -70,13 +70,13 @@ module QiniuStorage
 
     alias_method :encode_params, :encode_form
 
-    def build_url(host:, port: nil, path: nil, params: nil, use_https: nil)
+    def build_url(host:, port: nil, path: nil, params: nil, use_ssl: nil)
       options = { host: host, port: port, path: path }
       query = encode_params(params)
       unless query.empty?
         options[:query] = query
       end
-      if use_https
+      if use_ssl
         URI::HTTPS.build(options).to_s
       else
         URI::HTTP.build(options).to_s
