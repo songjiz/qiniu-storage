@@ -176,16 +176,12 @@ module QiniuStorage
         callbackhost: callback_host,
         file_type: file_type
       }
-      QiniuStorage.with_signed_http_request do
-        result = client.http_post(client.build_url(host: zone.api_host, path: "/sisyphus/fetch"), payload.to_json, "Content-Type" => "application/json")
-        QiniuStorage::AsyncFetchJob.new(bucket: self, job_id: result["id"], wait: result["wait"])
-      end
+      result = client.http_post(client.build_url(host: zone.api_host, path: "/sisyphus/fetch"), payload.to_json, "Content-Type" => "application/json", sign_request: true)
+      QiniuStorage::AsyncFetchJob.new(bucket: self, job_id: result["id"], wait: result["wait"])
     end
 
     def async_fetch_job(job_id)
-      QiniuStorage.with_signed_http_request do
-        client.http_get client.build_url(host: zone.api_host, path: "/sisyphus/fetch", params: { id: job_id }), "Content-Type" => "application/json"
-      end
+      client.http_get client.build_url(host: zone.api_host, path: "/sisyphus/fetch", params: { id: job_id }), "Content-Type" => "application/json", sign_request: true
     end
 
     def prefetch(key)
@@ -241,19 +237,19 @@ module QiniuStorage
       batch_chtype *keys, 1
     end
 
-    def url_for(key, options = {})
-      public_url = client.build_url(host: domains.first, path: "/#{key}", params: { fop: options[:fop].to_s }, use_ssl: options[:use_ssl])
-      expires_in = options[:expires_in]
-      if expires_in
-        sign_url public_url, expires_in
-      else
+    def url_for(key, acl: :public, expires_in: nil, params: nil, use_ssl: nil)
+      public_url = client.build_url(host: domains.first, path: "/#{key}", params: params, use_ssl: use_ssl)
+      case acl
+      when :public
         public_url
+      else
+        client.sign_url public_url, expires_in
       end
     end
     
     alias_method :object_url, :url_for
 
-    def download(key, range: nil, expires_in: nil)
+    def download(key, range: nil, **options)
       range_header = \
         case range
         when String
@@ -263,16 +259,14 @@ module QiniuStorage
         when Array
           "bytes=#{range[0]}-#{range[1]}"
         end
-      # Fix me: OpenSSL::SSL::SSLError: SSL_connect returned=1 errno=0 state=SSLv2/v3 read server hello A: sslv3 alert handshake failure
-      # use HTTP instead of HTTPS temporarily
-      client.http_get url_for(key, use_ssl: false, expires_in: expires_in), range: range_header
+      client.http_get url_for(key, **options), range: range_header
     end
 
-    def streaming_download(key, offset: 0, chunk_size: nil, expires_in: nil)
+    def streaming_download(key, offset: 0, chunk_size: nil, **options)
       fsize = metadata(key)["fsize"]
       chunk_size ||= QiniuStorage.configuration.download_chunk_size
       while offset < fsize
-        yield download(key, range: offset...(offset + chunk_size))
+        yield download(key, **options, range: offset...(offset + chunk_size))
         offset += chunk_size
       end
     end
@@ -287,10 +281,6 @@ module QiniuStorage
 
     def resumable_upload(source, options = {})
       uploader.resumable_upload source, self, options
-    end
-
-    def append(key, source, options = {})
-      uploader.append(source, self, key, options)
     end
 
     def direct_upload_url(use_ssl: nil)

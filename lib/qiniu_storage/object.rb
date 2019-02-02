@@ -225,6 +225,7 @@ module QiniuStorage
       @bucket = bucket
       @key = key
       @_metadata = {}
+      update_metadata options
     end
 
     def name
@@ -414,9 +415,6 @@ module QiniuStorage
       bucket.resumable_upload source, options.merge(key: key)
     end
 
-    def append(source, option = {})
-      bucket.append key, source, option
-    end
 
     def exists?
       !bucket.objects(prefix: key).empty?
@@ -427,19 +425,19 @@ module QiniuStorage
     end
 
     def img_info(options = {})
-      bucket.client.http_get url(options.merge(fop: QiniuStorage::Operation::ImageInfo.new))
+      bucket.client.http_get url(options.merge(params: [ QiniuStorage::Operation::ImageInfo.new ]))
     end
 
     def av_info(options = {})
-      bucket.client.http_get url(options.merge(fop: QiniuStorage::Operation::AvInfo.new))
+      bucket.client.http_get url(options.merge(params: [ QiniuStorage::Operation::AvInfo.new ]))
     end
 
-    def download(range: nil, expires_in: nil)
-      bucket.download key, range: range, expires_in: expires_in
+    def download(range: nil, **options)
+      bucket.download key, range: range, **options
     end
 
-    def streaming_download(offset: 0, chunk_size: nil, expires_in: nil, &block)
-      bucket.streaming_download key, offset: offset, chunk_size: chunk_size, expires_in: expires_in, &block
+    def streaming_download(offset: 0, chunk_size: nil, **options, &block)
+      bucket.streaming_download key, offset: offset, chunk_size: chunk_size, **options, &block
     end
 
     def update_metadata(options)

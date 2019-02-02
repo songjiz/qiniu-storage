@@ -86,16 +86,16 @@ module QiniuStorage
       [access_key, encoded_sign].join ":"
     end
 
-    def sign_url(url, expires_in)
-      expires_at = Time.now.utc.to_i + expires_in
-      uri = URI(url)
+    def sign_url(url, expires_in = nil)
+      expires_at = Time.now.utc.to_i + (expires_in || QiniuStorage.configuration.download_token_expires_in)
+      uri = URI(url.to_s)
       url = uri.to_s
       if url.include?("?")
         url << "&e=#{expires_at}"
       else
         url << "?e=#{expires_at}"
       end
-      hmac_sha1_sign = QiniuStorage.hmac_sha1_digest(uri.to_s, secret_key)
+      hmac_sha1_sign = QiniuStorage.hmac_sha1_digest(url, secret_key)
       encoded_sign   = QiniuStorage.base64_urlsafe_encode(hmac_sha1_sign)
       token = [access_key, encoded_sign].join(":")
       url << "&token=#{token}"
@@ -157,8 +157,9 @@ module QiniuStorage
       uri = URI(url)
       http = build_http(uri)
       request = Net::HTTP::Get.new(uri)
+      sign_request = headers.delete(:sign_request)
       default_headers.merge!(headers).each { |k, v| request[k] = v }
-      if QiniuStorage.with_signed_http_request?
+      if sign_request
         token = sign_http_request(request.method, request.uri, content_type: request["Content-Type"])
         request["Authorization"] = "Qiniu #{token}"
       end
@@ -170,6 +171,7 @@ module QiniuStorage
       uri = URI(url)
       http = build_http(uri)
       request = Net::HTTP::Post.new(uri)
+      sign_request = headers.delete(:sign_request)
       default_headers.merge!(headers).each { |k, v| request[k] = v }
       case data
       when Hash, Array
@@ -186,7 +188,7 @@ module QiniuStorage
           request.body_stream = data
         end
       end
-      if QiniuStorage.with_signed_http_request?
+      if sign_request
         token = sign_http_request(request.method, request.uri, content_type: request["Content-Type"], body: request.body)
         request["Authorization"] = "Qiniu #{token}"
       end

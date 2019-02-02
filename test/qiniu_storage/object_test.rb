@@ -257,7 +257,7 @@ class ObjectTest < Minitest::Test
     obj = bucket.object("zero")
     obj.attach StringIO.new("0" * 1020 * 1024 * 5)
     obj.stat
-    file_body = obj.download
+    file_body = obj.download use_ssl: false
     assert_equal file_body.size, 1020 * 1024 * 5
     assert_equal file_body.size, obj.size
 
@@ -265,10 +265,10 @@ class ObjectTest < Minitest::Test
     offset = file_body.size - chunk_size
     range = offset...file_body.size
     
-    partial = obj.download(range: range)
+    partial = obj.download(range: range, use_ssl: false)
     assert_equal partial.size, range.size
 
-    obj.streaming_download(offset: offset, chunk_size: chunk_size) do |bytes|
+    obj.streaming_download(offset: offset, chunk_size: chunk_size, use_ssl: false) do |bytes|
       assert_equal chunk_size, bytes.size
     end
   ensure

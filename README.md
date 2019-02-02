@@ -167,6 +167,7 @@ $ gem install qiniu-storage
 
   # 下载文件
   body = bucket.download("hello")
+  body = bucket.download("hello", acl: :private, expires_in: 3600)
   partial = bucket.download("hello", range: 0..1024)
   partial = bucket.download("hello", range: [0, 1024])
   partial = bucket.download("hello", range: "bytes=0-1024")
@@ -296,6 +297,11 @@ obj.put(StringIO.new("Hello, world"))
 obj.multipart_upload StringIO.new("Hello, world")
 # 可恢复上传(大文件)
 obj.resumable_upload StringIO.new("Hello" * 1024 * 1024)
+
+# 文件链接
+url = obj.url
+private_url = obj.url(acl: :private)
+private_url = obj.url(acl: :private, expires_in: 3600)
 
 # 下载文件
 body = obj.download

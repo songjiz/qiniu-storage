@@ -296,25 +296,6 @@ module QiniuStorage
       end
     end
 
-    # Fix me: This method will raise `object type not match` error
-    def append(source, bucket, key, offset: 0, **options)
-      fsize = options.fetch(:size, -1).to_i
-      mime = options.fetch(:mime_type, "application/octet-stream")
-      encoded_key = QiniuStorage.base64_urlsafe_encode(key)
-      encoded_mime = QiniuStorage.base64_urlsafe_encode(mime)
-      skip_crc32 = options.fetch(:skip_crc32_checksum, QiniuStorage.configuration.skip_crc32_checksum?)
-      with_streamable(source) do |stream|
-        path = "/append/#{offset.to_i}/fsize/#{fsize}/key/#{encoded_key}"
-        unless skip_crc32
-          crc32_checksum = QiniuStorage.crc32_checksum(stream).to_s
-          path += "/crc32/#{crc32_checksum}"
-        end
-        url = client.build_url(host: bucket.up_host, path: path)
-        token = generate_upload_token(bucket, key)
-        client.http_post url, stream, "Authorization" => "UpToken #{token}", "Content-Type" => "application/octet-stream", "Content-Length" => stream.size
-      end
-    end
-
     def lookup_resumable_progress_file(bucket, io)
       digest = QiniuStorage.md5_checksum(io)
       File.join QiniuStorage.configuration.cache_dir, bucket.to_s, digest
