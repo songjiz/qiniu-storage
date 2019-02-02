@@ -3,10 +3,12 @@ require "singleton"
 
 module QiniuStorage
   class Configuration
+    FALSE_STR_VALUES = ["0", "f", "F", "false", "FALSE", "off", "OFF", "no", "NO"].freeze
+
     using Module.new {
       refine String do
         def to_b
-          !["0", "f", "F", "false", "FALSE", "off", "OFF", "no", "NO"].include?(self)
+          !QiniuStorage::Configuration::FALSE_STR_VALUES.include?(self)
         end unless method_defined?(:to_b)
       end
     }
