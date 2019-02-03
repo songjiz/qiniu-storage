@@ -405,9 +405,9 @@ module QiniuStorage
       def generate_parts(io_size, block_size)
         parts = (io_size.to_f / block_size).ceil
         (0...parts).each do |i|
-          form = i * block_size
+          from = i * block_size
           to = [(i + 1) * block_size, io_size].min
-          yield id: i, range: form...to
+          yield id: i, range: from...to
         end
       end
     
